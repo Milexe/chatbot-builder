@@ -24,7 +24,20 @@ npm install
 npm run dev
 ```
 
-Fill in Supabase, OpenRouter, and Stripe keys in `.env.local`. Apply the SQL migration in `supabase/migrations/` from the Supabase SQL editor (or via the Supabase CLI).
+Fill in Supabase, OpenRouter, and Stripe keys in `.env` or `.env.local`. Apply the SQL migration in `supabase/migrations/` from the Supabase SQL editor.
+
+For Auth, set in Supabase **Authentication → URL Configuration**:
+
+- Site URL: `http://localhost:3000`
+- Redirect URLs: `http://localhost:3000/auth/callback`
+
+Enable **Email** (password) under Auth → Providers. For local development you can turn off **Confirm email** under Auth → Providers → Email.
+
+For **Google** OAuth: Auth → Providers → Google → enable, paste Client ID/Secret from Google Cloud Console. Authorized redirect URI in Google must be:
+
+`https://<project-ref>.supabase.co/auth/v1/callback`
+
+(Find `project-ref` in Project Settings → General.)
 
 ## Plans
 

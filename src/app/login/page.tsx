@@ -1,7 +1,8 @@
 import Link from "next/link";
 
+import { LoginForm } from "@/app/login/login-form";
 import { SiteHeader } from "@/components/site-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,44 +10,38 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+
   return (
     <>
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
         <Card>
           <CardHeader>
-            <CardTitle>Sign in</CardTitle>
+            <CardTitle>Welcome back</CardTitle>
             <CardDescription>
-              Enter your email and we will send a magic link to sign in.
+              Sign in with Google or email to manage your chatbots.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form className="flex flex-col gap-4" action="#" method="post">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  disabled
-                />
-              </div>
-              <Button type="submit" disabled>
-                Send magic link
-              </Button>
-            </form>
+          <CardContent className="flex flex-col gap-3">
+            {params.error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {params.error}
+              </p>
+            ) : null}
+            <LoginForm />
             <Link
               href="/"
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "mt-3 w-full",
+                "w-full",
               )}
             >
               Back to home
