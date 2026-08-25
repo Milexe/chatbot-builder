@@ -57,6 +57,11 @@ export async function submitEmailAuth(
   const supabase = await createClient();
 
   if (intent === "signup") {
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+    if (parsed.password !== confirmPassword) {
+      return { ok: false, message: "Passwords do not match." };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: parsed.email,
       password: parsed.password,

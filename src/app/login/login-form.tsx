@@ -18,20 +18,11 @@ type Mode = "signin" | "signup";
 
 export function LoginForm() {
   const [mode, setMode] = useState<Mode>("signin");
-  const [state, formAction, pending] = useActionState(
-    submitEmailAuth,
-    initialState,
-  );
 
   return (
     <div className="flex flex-col gap-4">
       <form action={signInWithGoogle}>
-        <Button
-          type="submit"
-          variant="outline"
-          className="w-full gap-2"
-          disabled={pending}
-        >
+        <Button type="submit" variant="outline" className="w-full gap-2">
           <GoogleIcon />
           Continue with Google
         </Button>
@@ -43,57 +34,7 @@ export function LoginForm() {
         <Separator className="flex-1" />
       </div>
 
-      <form action={formAction} className="flex flex-col gap-4">
-        <input type="hidden" name="intent" value={mode} />
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@company.com"
-            required
-            disabled={pending}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete={
-              mode === "signin" ? "current-password" : "new-password"
-            }
-            placeholder="At least 8 characters"
-            required
-            minLength={8}
-            disabled={pending}
-          />
-        </div>
-        <Button type="submit" disabled={pending}>
-          {pending
-            ? mode === "signin"
-              ? "Signing in…"
-              : "Creating account…"
-            : mode === "signin"
-              ? "Sign in"
-              : "Create account"}
-        </Button>
-        {state.message ? (
-          <p
-            className={
-              state.ok
-                ? "text-sm text-muted-foreground"
-                : "text-sm text-destructive"
-            }
-            role="status"
-          >
-            {state.message}
-          </p>
-        ) : null}
-      </form>
+      <EmailPasswordForm key={mode} mode={mode} />
 
       <p className="text-center text-sm text-muted-foreground">
         {mode === "signin" ? (
@@ -121,6 +62,101 @@ export function LoginForm() {
         )}
       </p>
     </div>
+  );
+}
+
+function EmailPasswordForm({ mode }: { mode: Mode }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [clientError, setClientError] = useState("");
+  const [state, formAction, pending] = useActionState(
+    submitEmailAuth,
+    initialState,
+  );
+
+  const errorMessage = clientError || (!state.ok ? state.message : "");
+  const successMessage = state.ok ? state.message : "";
+
+  return (
+    <form
+      className="flex flex-col gap-4"
+      action={formAction}
+      onSubmit={(event) => {
+        setClientError("");
+        if (mode === "signup" && password !== confirmPassword) {
+          event.preventDefault();
+          setClientError("Passwords do not match.");
+        }
+      }}
+    >
+      <input type="hidden" name="intent" value={mode} />
+      <div className="grid gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@company.com"
+          required
+          disabled={pending}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete={mode === "signin" ? "current-password" : "new-password"}
+          placeholder="At least 8 characters"
+          required
+          minLength={8}
+          disabled={pending}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+      </div>
+      {mode === "signup" ? (
+        <div className="grid gap-2">
+          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Repeat password"
+            required
+            minLength={8}
+            disabled={pending}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+        </div>
+      ) : null}
+      <Button type="submit" disabled={pending}>
+        {pending
+          ? mode === "signin"
+            ? "Signing in…"
+            : "Creating account…"
+          : mode === "signin"
+            ? "Sign in"
+            : "Create account"}
+      </Button>
+      {errorMessage ? (
+        <p className="text-sm text-destructive" role="status">
+          {errorMessage}
+        </p>
+      ) : null}
+      {successMessage ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {successMessage}
+        </p>
+      ) : null}
+    </form>
   );
 }
 
