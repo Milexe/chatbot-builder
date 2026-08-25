@@ -43,3 +43,7 @@ next-env.d.ts
 
 # local AI / planning notes (not for the public repo)
 .local/
+
+# local Cursor IDE settings
+.cursor/
+

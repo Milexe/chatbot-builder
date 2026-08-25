@@ -49,22 +49,33 @@ export async function submitEmailAuth(
   formData: FormData,
 ): Promise<AuthActionState> {
   const intent = String(formData.get("intent") ?? "signin");
-  if (intent === "signup") {
-    return signUpWithPassword(_prev, formData);
-  }
-  return signInWithPassword(_prev, formData);
-}
-
-export async function signInWithPassword(
-  _prev: AuthActionState,
-  formData: FormData,
-): Promise<AuthActionState> {
   const parsed = parseCredentials(formData);
   if (parsed.error) {
     return { ok: false, message: parsed.error };
   }
 
   const supabase = await createClient();
+
+  if (intent === "signup") {
+    const { data, error } = await supabase.auth.signUp({
+      email: parsed.email,
+      password: parsed.password,
+    });
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    if (data.session) {
+      redirect("/dashboard");
+    }
+
+    return {
+      ok: false,
+      message:
+        "Signed up but no session was returned. In Supabase Auth → Providers → Email, turn Confirm email off for this MVP.",
+    };
+  }
+
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.email,
     password: parsed.password,
@@ -75,42 +86,6 @@ export async function signInWithPassword(
   }
 
   redirect("/dashboard");
-}
-
-export async function signUpWithPassword(
-  _prev: AuthActionState,
-  formData: FormData,
-): Promise<AuthActionState> {
-  const parsed = parseCredentials(formData);
-  if (parsed.error) {
-    return { ok: false, message: parsed.error };
-  }
-
-  const headerStore = await headers();
-  const origin = getAppOrigin(headerStore);
-  const supabase = await createClient();
-
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.email,
-    password: parsed.password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
-    },
-  });
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
-
-  if (data.session) {
-    redirect("/dashboard");
-  }
-
-  return {
-    ok: true,
-    message:
-      "Account created. Check your email to confirm, then sign in — or disable email confirmation in Supabase Auth settings for local development.",
-  };
 }
 
 export async function signInWithGoogle() {

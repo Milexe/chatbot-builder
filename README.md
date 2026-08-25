@@ -26,18 +26,17 @@ npm run dev
 
 Fill in Supabase, OpenRouter, and Stripe keys in `.env` or `.env.local`. Apply the SQL migration in `supabase/migrations/` from the Supabase SQL editor.
 
-For Auth, set in Supabase **Authentication → URL Configuration**:
+### Auth (MVP)
 
-- Site URL: `http://localhost:3000`
-- Redirect URLs: `http://localhost:3000/auth/callback`
+- Authentication → URL Configuration  
+  - Site URL: `http://localhost:3000`  
+  - Redirect URLs: `http://localhost:3000/auth/callback`
+- Authentication → Providers → **Email**: enabled, **Confirm email = OFF** (MVP: signup creates a session immediately; custom email templates need SMTP / paid plan)
+- Authentication → Providers → **Google** (optional): Client ID/Secret from Google Cloud. Redirect URI:
 
-Enable **Email** (password) under Auth → Providers. For local development you can turn off **Confirm email** under Auth → Providers → Email.
+  `https://<project-ref>.supabase.co/auth/v1/callback`
 
-For **Google** OAuth: Auth → Providers → Google → enable, paste Client ID/Secret from Google Cloud Console. Authorized redirect URI in Google must be:
-
-`https://<project-ref>.supabase.co/auth/v1/callback`
-
-(Find `project-ref` in Project Settings → General.)
+Supported sign-in: email + password, Google OAuth.
 
 ## Plans
 
@@ -53,3 +52,4 @@ For **Google** OAuth: Auth → Providers → Google → enable, paste Client ID/
 - Prefer staying on the Supabase Free plan during development; exceeding quotas restricts the project rather than auto-charging.
 - Product-side upload limits keep database and storage usage predictable.
 - Free Supabase projects pause after about a week of inactivity — restore from the dashboard before demos.
+- **MVP known limitation:** email confirmation is disabled (no custom SMTP on Free). Re-enable with custom SMTP before a real launch.
