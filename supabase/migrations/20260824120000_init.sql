@@ -145,10 +145,14 @@ alter table public.document_chunks enable row level security;
 alter table public.conversations enable row level security;
 alter table public.messages enable row level security;
 
--- Profiles
+-- Profiles (insert is a fallback if the signup trigger did not run)
 create policy "profiles_select_own"
   on public.profiles for select
   using (auth.uid() = id);
+
+create policy "profiles_insert_own"
+  on public.profiles for insert
+  with check (auth.uid() = id and plan = 'free');
 
 create policy "profiles_update_own"
   on public.profiles for update
@@ -247,6 +251,12 @@ create policy "messages_insert_own"
       where c.id = conversation_id and c.owner_id = auth.uid()
     )
   );
+
+-- Tables created via SQL do not get API grants automatically.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant select on public.bots to anon;
+grant usage, select on all sequences in schema public to authenticated;
 
 -- Storage bucket for uploads (create via dashboard or:)
 insert into storage.buckets (id, name, public)
