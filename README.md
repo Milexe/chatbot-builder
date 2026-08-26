@@ -79,3 +79,4 @@ Supported sign-in: email + password, Google OAuth.
 - Product-side upload limits keep database and storage usage predictable.
 - Free Supabase projects pause after about a week of inactivity — restore from the dashboard before demos.
 - **MVP known limitation:** email confirmation is disabled (no custom SMTP on Free). Re-enable with custom SMTP before a real launch.
+- Product locks and embed quota decisions: [`docs/product-decisions.md`](docs/product-decisions.md). Tunable non-plan numbers: [`src/lib/limits.ts`](src/lib/limits.ts).

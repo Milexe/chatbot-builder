@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { RAG_MATCH_COUNT, RAG_MATCH_THRESHOLD } from "@/lib/limits";
 import { createEmbeddings } from "@/lib/openrouter";
 
 export type RetrievedChunk = {
@@ -19,8 +20,8 @@ export async function retrieveRelevantChunks(
   supabase: SupabaseClient,
   botId: string,
   query: string,
-  matchCount = 6,
-  matchThreshold = 0.5,
+  matchCount = RAG_MATCH_COUNT,
+  matchThreshold = RAG_MATCH_THRESHOLD,
 ): Promise<RetrievedChunk[]> {
   const [embedding] = await createEmbeddings([query]);
   if (!embedding) {
