@@ -110,7 +110,8 @@ export default async function BotDetailPage({
           <CardHeader>
             <CardTitle>Knowledge</CardTitle>
             <CardDescription>
-              Files power answers once indexing lands in the next phase.
+              Files are chunked and embedded after upload so chat can retrieve
+              them later.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -128,8 +129,8 @@ export default async function BotDetailPage({
 
       <Separator />
       <p className="text-sm text-muted-foreground">
-        Chat and embed come after document indexing. For now, get your knowledge
-        files in place.
+        In-app chat and the embed widget come next. Knowledge files are indexed
+        when you upload them.
       </p>
     </div>
   );

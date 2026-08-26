@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
 import {
@@ -10,6 +11,8 @@ import {
   getDocumentExtension,
   isAllowedDocumentFile,
 } from "@/lib/documents";
+import { indexDocument } from "@/lib/indexing";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 export type DocumentActionState = {
   ok: boolean;
@@ -106,11 +109,96 @@ export async function uploadDocument(
     return { ok: false, message: insertError.message };
   }
 
-  revalidatePath(`/dashboard/bots/${botId}`);
+  // Mark processing before the response so the list does not flash as pending.
+  await supabase
+    .from("documents")
+    .update({
+      status: "processing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", documentId)
+    .eq("owner_id", user.id);
+
+  const ownerId = user.id;
+  const path = `/dashboard/bots/${botId}`;
+
+  // Prefer background indexing so the upload form is not stuck on pending for ~8s+.
+  // Fall back to sync if the service role key is missing (local misconfig).
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const indexed = await indexDocument(supabase, documentId, ownerId);
+    revalidatePath(path);
+    if (!indexed.ok) {
+      return {
+        ok: false,
+        message: `Uploaded, but indexing failed: ${indexed.message}`,
+      };
+    }
+    return {
+      ok: true,
+      message: `Uploaded and indexed. ${indexed.message}`,
+    };
+  }
+
+  after(async () => {
+    try {
+      const admin = createServiceClient();
+      await indexDocument(admin, documentId, ownerId);
+    } finally {
+      revalidatePath(path);
+    }
+  });
+
+  revalidatePath(path);
   return {
     ok: true,
-    message: "Document uploaded. Indexing comes in the next phase.",
+    message: "Uploaded. Indexing in the background…",
   };
+}
+
+export async function reindexDocument(botId: string, documentId: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("id", documentId)
+    .eq("bot_id", botId)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (!doc) {
+    return;
+  }
+
+  await supabase
+    .from("documents")
+    .update({
+      status: "processing",
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", documentId)
+    .eq("owner_id", user.id);
+
+  const ownerId = user.id;
+  const path = `/dashboard/bots/${botId}`;
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    await indexDocument(supabase, documentId, ownerId);
+    revalidatePath(path);
+    return;
+  }
+
+  after(async () => {
+    try {
+      const admin = createServiceClient();
+      await indexDocument(admin, documentId, ownerId);
+    } finally {
+      revalidatePath(path);
+    }
+  });
+
+  revalidatePath(path);
 }
 
 export async function deleteDocument(botId: string, documentId: string) {
