@@ -63,5 +63,5 @@ Origin matching uses the browser `Origin` header, with `Referer` as fallback. Sp
 - Wildcard / subdomain origin patterns
 - Chat streaming + optimistic user bubbles
 - Citation chips in chat UI
-- CI: `lint` + `tsc` (+ tests) on deploy
 - Unit/E2E tests
+- UI polish / design pass

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "db:login": "supabase login",
     "db:link": "supabase link --project-ref cagbrjmlcwfhlknuegwu",
     "db:push": "supabase db push",

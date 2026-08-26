@@ -38,7 +38,7 @@
       var id = uuid();
       sessionStorage.setItem(SESSION_KEY, id);
       return id;
-    } catch (e) {
+    } catch {
       return uuid();
     }
   }
@@ -47,7 +47,7 @@
     try {
       var raw = sessionStorage.getItem(HISTORY_KEY);
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   }
@@ -55,7 +55,7 @@
   function saveHistory(messages) {
     try {
       sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-40)));
-    } catch (e) {
+    } catch {
       /* ignore quota */
     }
   }

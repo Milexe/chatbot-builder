@@ -64,6 +64,34 @@ Docker/`supabase start` is optional for fully local Postgres; remote Free projec
 
 Supported sign-in: email + password, Google OAuth.
 
+## Deploy (Vercel)
+
+1. Import the GitHub repo in [Vercel](https://vercel.com/new) (Hobby is fine for MVP).
+2. Set environment variables (Production + Preview) from `.env.example`:
+   - `NEXT_PUBLIC_APP_URL` — your Vercel URL, e.g. `https://chatbot-builder.vercel.app`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `OPENROUTER_API_KEY`
+   - optional: `OPENROUTER_CHAT_MODEL`, `OPENROUTER_EMBEDDING_MODEL`
+3. Deploy. Root directory = repo root; framework = Next.js (auto-detected).
+4. In Supabase → Authentication → URL Configuration:
+   - **Site URL**: same as `NEXT_PUBLIC_APP_URL`
+   - **Redirect URLs**: add `https://<your-app>.vercel.app/auth/callback` (and keep localhost for local)
+5. Google OAuth (if used): authorized redirect stays  
+   `https://cagbrjmlcwfhlknuegwu.supabase.co/auth/v1/callback`  
+   (Google Cloud console does not need the Vercel domain for Supabase-hosted OAuth.)
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `master`:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build` (with placeholder public env)
+
+Vercel handles production deploys from `master` once the project is linked.
+
 ## Plans
 
 | | Free | Pro | Business |
