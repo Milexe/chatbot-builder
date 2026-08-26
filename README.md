@@ -24,7 +24,33 @@ npm install
 npm run dev
 ```
 
-Fill in Supabase, OpenRouter, and Stripe keys in `.env` or `.env.local`. Apply the SQL migration in `supabase/migrations/` from the Supabase SQL editor.
+Fill in Supabase, OpenRouter, and Stripe keys in `.env` or `.env.local`.
+
+### Database (Supabase CLI)
+
+Schema lives in `supabase/migrations/`. Remote project ref: `cagbrjmlcwfhlknuegwu`.
+
+One-time link (needs [access token](https://supabase.com/dashboard/account/tokens) + DB password from project settings):
+
+```bash
+npm run db:login
+npm run db:link
+```
+
+Day-to-day:
+
+```bash
+npm run db:migration:new -- add_something   # create empty migration file
+# edit the SQL, then:
+npm run db:push:dry                          # preview
+npm run db:push                              # apply pending migrations to remote
+npm run db:migration:list                    # local files vs remote history
+npm run db:types                             # regenerate src/types/supabase.ts
+```
+
+Prefer CLI/`db push` (or ask the agent via Supabase MCP) over pasting into the SQL Editor, so git and the cloud stay in sync.
+
+Docker/`supabase start` is optional for fully local Postgres; remote Free project is enough for MVP.
 
 ### Auth (MVP)
 
