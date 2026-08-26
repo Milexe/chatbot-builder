@@ -33,6 +33,7 @@ export const PLANS: Plan[] = [
       "Up to 3 documents (5 MB each)",
       "In-app chat",
       "Embed widget with Chatbot Builder branding",
+      "Embed domain allowlist",
     ],
     limits: {
       bots: 1,
@@ -80,7 +81,6 @@ export const PLANS: Plan[] = [
       "10,000 messages / month",
       "Up to 100 documents",
       "Everything in Pro",
-      "Allowed embed domains",
       "Priority-friendly quotas",
     ],
     limits: {

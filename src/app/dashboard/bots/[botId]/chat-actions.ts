@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
-import { createChatCompletion } from "@/lib/openrouter";
-import { buildContextBlock, retrieveRelevantChunks } from "@/lib/rag";
+import { answerBotQuestion } from "@/lib/bot-answer";
 import {
   assertUnderMessageLimit,
   ensureMessagePeriod,
@@ -97,27 +96,17 @@ export async function sendChatMessage(
   }
 
   try {
-    const chunks = await retrieveRelevantChunks(supabase, botId, content);
-    const context = buildContextBlock(chunks);
-
-    const answer = await createChatCompletion([
-      {
-        role: "system",
-        content: `${bot.system_prompt}
-
-Use only the context below to answer. If the answer is not in the context, say you do not know.
-
-Context:
-${context}`,
-      },
-      { role: "user", content },
-    ]);
+    const { answer, citationChunkIds } = await answerBotQuestion(
+      supabase,
+      bot,
+      content,
+    );
 
     const { error: assistantError } = await supabase.from("messages").insert({
       conversation_id: activeConversationId,
       role: "assistant",
       content: answer,
-      citation_chunk_ids: chunks.map((chunk) => chunk.id),
+      citation_chunk_ids: citationChunkIds,
     });
 
     if (assistantError) {
@@ -144,12 +133,16 @@ ${context}`,
 export async function clearConversation(botId: string, conversationId: string) {
   const { supabase, user } = await requireUser();
 
-  await supabase
+  const { error } = await supabase
     .from("conversations")
     .delete()
     .eq("id", conversationId)
     .eq("bot_id", botId)
     .eq("owner_id", user.id);
+
+  if (error) {
+    throw new Error(error.message || "Could not clear conversation.");
+  }
 
   revalidatePath(`/dashboard/bots/${botId}`);
 }

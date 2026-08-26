@@ -71,7 +71,8 @@ Supported sign-in: email + password, Google OAuth.
 | Bots | 1 | 3 | 10 |
 | Messages / month | 50 | 2 000 | 10 000 |
 | Documents | 3 × 5 MB | 30 | 100 |
-| Embed branding | included | removable | removable + allowed domains |
+| Embed branding | included | removable | removable |
+| Embed domain allowlist | yes | yes | yes |
 
 ## Notes
 

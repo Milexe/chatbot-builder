@@ -5,6 +5,7 @@ import { deleteBot } from "@/app/dashboard/bots/actions";
 import { BotSettingsForm } from "@/app/dashboard/bots/[botId]/bot-settings-form";
 import { ChatPanel } from "@/app/dashboard/bots/[botId]/chat-panel";
 import { DocumentsPanel } from "@/app/dashboard/bots/[botId]/documents-panel";
+import { EmbedSnippet } from "@/app/dashboard/bots/[botId]/embed-snippet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -151,7 +152,7 @@ export default async function BotDetailPage({
           <CardHeader>
             <CardTitle>Settings</CardTitle>
             <CardDescription>
-              Name, welcome message, and accent color for the future widget.
+              Name, welcome message, accent color, and embed domain allowlist.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,6 +180,18 @@ export default async function BotDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Embed</CardTitle>
+          <CardDescription>
+            Add the widget to your website with one script tag.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmbedSnippet botId={botId} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

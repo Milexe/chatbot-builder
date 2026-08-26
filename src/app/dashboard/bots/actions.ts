@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
+import { parseAllowedOriginsText } from "@/lib/embed-guards";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
 export type BotActionState = {
@@ -17,17 +18,21 @@ function parseBotFields(formData: FormData): {
   name: string;
   welcomeMessage: string;
   primaryColor: string;
+  allowedOrigins: string[];
   error?: string;
 } {
   const name = String(formData.get("name") ?? "").trim();
   const welcomeMessage = String(formData.get("welcome_message") ?? "").trim();
   const primaryColor = String(formData.get("primary_color") ?? DEFAULT_COLOR).trim();
+  const allowedOriginsRaw = String(formData.get("allowed_origins") ?? "");
+  const parsedOrigins = parseAllowedOriginsText(allowedOriginsRaw);
 
   if (!name) {
     return {
       name,
       welcomeMessage,
       primaryColor,
+      allowedOrigins: [],
       error: "Name is required.",
     };
   }
@@ -36,6 +41,7 @@ function parseBotFields(formData: FormData): {
       name,
       welcomeMessage,
       primaryColor,
+      allowedOrigins: [],
       error: "Name must be 80 characters or fewer.",
     };
   }
@@ -44,6 +50,7 @@ function parseBotFields(formData: FormData): {
       name,
       welcomeMessage,
       primaryColor,
+      allowedOrigins: [],
       error: "Welcome message must be 500 characters or fewer.",
     };
   }
@@ -52,7 +59,17 @@ function parseBotFields(formData: FormData): {
       name,
       welcomeMessage,
       primaryColor,
+      allowedOrigins: [],
       error: "Color must be a hex value like #111827.",
+    };
+  }
+  if (parsedOrigins.error) {
+    return {
+      name,
+      welcomeMessage,
+      primaryColor,
+      allowedOrigins: [],
+      error: parsedOrigins.error,
     };
   }
 
@@ -61,6 +78,7 @@ function parseBotFields(formData: FormData): {
     welcomeMessage:
       welcomeMessage || "Hi! Ask me anything about our docs.",
     primaryColor,
+    allowedOrigins: parsedOrigins.origins,
   };
 }
 
@@ -160,6 +178,7 @@ export async function updateBot(
       slug: nextSlug,
       welcome_message: fields.welcomeMessage,
       primary_color: fields.primaryColor,
+      allowed_origins: fields.allowedOrigins,
       updated_at: new Date().toISOString(),
     })
     .eq("id", botId)

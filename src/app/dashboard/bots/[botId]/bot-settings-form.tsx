@@ -55,6 +55,23 @@ export function BotSettingsForm({ bot }: { bot: BotRow }) {
           className="h-10 w-20 cursor-pointer p-1"
         />
       </div>
+      <div className="grid gap-2">
+        <Label htmlFor="allowed_origins">Allowed embed origins</Label>
+        <Textarea
+          id="allowed_origins"
+          name="allowed_origins"
+          defaultValue={bot.allowed_origins.join("\n")}
+          placeholder={"*\nhttps://example.com\nhttp://localhost:3000"}
+          rows={4}
+          disabled={pending}
+        />
+        <p className="text-xs text-muted-foreground">
+          One origin per line (scheme + host, optional port). Covers all pages on
+          that host. Use <code className="text-[0.7rem]">*</code> or leave empty
+          to allow any website. Local smoke test:{" "}
+          <code className="text-[0.7rem]">http://localhost:3000</code>.
+        </p>
+      </div>
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save settings"}
       </Button>

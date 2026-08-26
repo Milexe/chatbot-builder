@@ -34,39 +34,33 @@ Pricing table amounts are still placeholders until Stripe.
 - Owner monthly message quota from plan (`profiles.messages_used_this_month`)
 - Citation chunk ids stored on assistant messages; UI citations later
 
-## Embed widget (next — decisions locked, not shipped yet)
+## Embed widget (shipped MVP)
 
 | Topic | Decision |
 | --- | --- |
-| Integration | Script tag: `<script src="…/widget.js" data-bot-id="…">` (not iframe-first) |
-| Shared logic | One server RAG helper for dashboard chat + embed |
+| Integration | Script tag: `<script src="…/widget.js" data-bot-id="…">` |
+| Shared logic | [`src/lib/bot-answer.ts`](../src/lib/bot-answer.ts) for dashboard + embed |
 | Streaming | No (add later for app + widget together) |
 | Owner quota | Same monthly plan pool as in-app chat |
-| Visitor quota | **Per browser session** (not calendar day) — see `EMBED_SESSION_MESSAGE_LIMIT` |
-| Rate limit | Per IP + bot, short window — see `EMBED_RATE_LIMIT_*` |
-| Allowed origins | Not enforced in first embed MVP |
-| Branding | Free plan keeps Chatbot Builder branding (when widget ships) |
+| Visitor quota | **Per browser session** — `EMBED_SESSION_MESSAGE_LIMIT` (15) |
+| Rate limit | Per IP + bot — `EMBED_RATE_LIMIT_*` (10 / 60s) |
+| Allowed origins | Enforced when `bots.allowed_origins` is non-empty; empty or `*` = any site. Match uses `Origin`, else `Referer` (same-origin GET often omits Origin). One origin covers all paths on that host. |
+| Branding | Shown unless plan has `removeBranding` |
 
-### Visitor session (MVP)
+API:
 
-- Widget generates/stores a session id (e.g. `sessionStorage`)
-- Cap **user messages** in that session per bot
-- Over limit → friendly block in the widget (no OpenRouter call)
-- Closing the tab starts a new session (acceptable for MVP)
+- `GET /api/embed/[botId]/config`
+- `POST /api/embed/[botId]/chat` body `{ message, sessionId }`
 
-### Rate limit (MVP)
+Script: [`public/widget.js`](../public/widget.js). Copy snippet on the bot dashboard Embed card.
 
-- Protects public endpoints from burst abuse
-- Storage: Postgres (or equivalent) — not Redis for MVP
-- Over limit → HTTP 429 / widget message
-
-Tune values in [`src/lib/limits.ts`](../src/lib/limits.ts).
+Origin matching uses the browser `Origin` header, with `Referer` as fallback. Spoofable outside browsers; still stops casual copy-paste embeds.
 
 ## Deferred
 
 - PDF upload
 - Stripe / real billing enforcement beyond local plan field
-- Embed allowed_origins UI + enforcement
+- Wildcard / subdomain origin patterns
 - Chat streaming + optimistic user bubbles
 - Citation chips in chat UI
 - CI: `lint` + `tsc` (+ tests) on deploy
