@@ -74,7 +74,7 @@ export function BotsGrid({
                 href={`/dashboard/bots/${bot.id}`}
                 className={cn(buttonVariants({ size: "sm" }), "flex-1")}
               >
-                Open
+                Details
               </Link>
               <BotFormDialog
                 mode="edit"

@@ -13,22 +13,30 @@ import Link from "next/link";
 async function resolveDemoWidgetOrigin(): Promise<string> {
   const headerStore = await headers();
   const host = headerStore.get("x-forwarded-host") || headerStore.get("host");
-  const isLocal =
-    Boolean(host) &&
-    (host!.includes("localhost") || host!.startsWith("127."));
+  const isLocalHost = (value: string) =>
+    value.includes("localhost") || value.includes("127.0.0.1");
 
-  // Local pages always load local widget.js (ignore remote DEMO_WIDGET_ORIGIN).
-  if (isLocal && host) {
+  // Local pages always load local widget.js.
+  if (host && isLocalHost(host)) {
     const proto = headerStore.get("x-forwarded-proto") || "http";
     return `${proto}://${host}`.replace(/\/$/, "");
   }
 
-  const configured = process.env.NEXT_PUBLIC_DEMO_WIDGET_ORIGIN?.trim();
-  if (configured) return configured.replace(/\/$/, "");
+  const configured = process.env.NEXT_PUBLIC_DEMO_WIDGET_ORIGIN?.trim().replace(
+    /\/$/,
+    "",
+  );
+  // Never point a live host at a localhost widget origin (common .env copy paste).
+  if (configured && !isLocalHost(configured)) {
+    return configured;
+  }
 
-  if (!host) return "";
-  const proto = headerStore.get("x-forwarded-proto") || "https";
-  return `${proto}://${host}`.replace(/\/$/, "");
+  if (host) {
+    const proto = headerStore.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}`.replace(/\/$/, "");
+  }
+
+  return (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
 }
 
 export default async function HomePage() {

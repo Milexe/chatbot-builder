@@ -74,12 +74,15 @@ Supported sign-in: email + password, Google OAuth.
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `OPENROUTER_API_KEY`
    - optional: `OPENROUTER_CHAT_MODEL`, `OPENROUTER_EMBEDDING_MODEL`
+   - optional landing demo: `NEXT_PUBLIC_DEMO_BOT_ID` (public/live bot UUID). Without it the corner chat does not mount on production. Redeploy after adding — `NEXT_PUBLIC_*` is baked at build time.
+   - do **not** set `NEXT_PUBLIC_DEMO_WIDGET_ORIGIN` to `localhost` on Production (leave unset so the Vercel host serves `/widget.js`)
 3. Deploy. Root directory = repo root; framework = Next.js (auto-detected).
-4. In Supabase → Authentication → URL Configuration:
+4. Demo bot checklist: bot is **Live** (not paused), allowlist includes your Vercel origin or `*`, and you are **signed out** on the landing (logged-in users hide the demo widget).
+5. In Supabase → Authentication → URL Configuration:
    - **Site URL**: same as `NEXT_PUBLIC_APP_URL` (no trailing slash)
    - **Redirect URLs**: add `https://<your-app>.vercel.app/auth/callback` (and keep `http://localhost:3000/auth/callback` for local)
    - Google OAuth `redirectTo` is built from the request host first, then `NEXT_PUBLIC_APP_URL`
-5. Google OAuth (if used): authorized redirect stays  
+6. Google OAuth (if used): authorized redirect stays  
    `https://cagbrjmlcwfhlknuegwu.supabase.co/auth/v1/callback`  
    (Google Cloud console does not need the Vercel domain for Supabase-hosted OAuth.)
 

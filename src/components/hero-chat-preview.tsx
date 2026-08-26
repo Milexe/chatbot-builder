@@ -49,10 +49,26 @@ function MessageBubble({
   );
 }
 
+/** One loop unit: messages + trailing gap-3 so the next copy sits flush. */
+function MessageStack({ "aria-hidden": ariaHidden }: { "aria-hidden"?: boolean }) {
+  return (
+    <div className="px-4" aria-hidden={ariaHidden || undefined}>
+      <div className="flex flex-col gap-3">
+        {DEMO_MESSAGES.map((message, index) => (
+          <MessageBubble
+            key={`${message.role}-${index}`}
+            role={message.role}
+            text={message.text}
+          />
+        ))}
+      </div>
+      <div className="h-3" aria-hidden />
+    </div>
+  );
+}
+
 /** Fixed chat frame; duplicated message list scrolls in a seamless loop. */
 export function HeroChatPreview() {
-  const loop = [...DEMO_MESSAGES, ...DEMO_MESSAGES];
-
   return (
     <div className="relative mx-auto w-full max-w-sm select-none lg:mx-0 lg:justify-self-end">
       <div
@@ -66,7 +82,7 @@ export function HeroChatPreview() {
           </span>
         </div>
         <div
-          className="relative min-h-0 flex-1 overflow-hidden"
+          className="relative min-h-0 flex-1 overflow-hidden py-4"
           style={{
             backgroundColor: chatSurfaceFromPrimary(DEFAULT_BOT_COLOR),
           }}
@@ -79,14 +95,9 @@ export function HeroChatPreview() {
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white/90 to-transparent"
           />
-          <div className="animate-cbb-scroll-messages flex flex-col gap-3 p-4 will-change-transform">
-            {loop.map((message, index) => (
-              <MessageBubble
-                key={`${message.role}-${index}`}
-                role={message.role}
-                text={message.text}
-              />
-            ))}
+          <div className="animate-cbb-scroll-messages will-change-transform">
+            <MessageStack />
+            <MessageStack aria-hidden />
           </div>
         </div>
         <div className="shrink-0 border-t border-border/70 bg-card px-3 py-3">
