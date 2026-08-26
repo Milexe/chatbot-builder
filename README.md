@@ -76,8 +76,9 @@ Supported sign-in: email + password, Google OAuth.
    - optional: `OPENROUTER_CHAT_MODEL`, `OPENROUTER_EMBEDDING_MODEL`
 3. Deploy. Root directory = repo root; framework = Next.js (auto-detected).
 4. In Supabase → Authentication → URL Configuration:
-   - **Site URL**: same as `NEXT_PUBLIC_APP_URL`
-   - **Redirect URLs**: add `https://<your-app>.vercel.app/auth/callback` (and keep localhost for local)
+   - **Site URL**: same as `NEXT_PUBLIC_APP_URL` (no trailing slash)
+   - **Redirect URLs**: add `https://<your-app>.vercel.app/auth/callback` (and keep `http://localhost:3000/auth/callback` for local)
+   - Google OAuth `redirectTo` is built from the request host first, then `NEXT_PUBLIC_APP_URL`
 5. Google OAuth (if used): authorized redirect stays  
    `https://cagbrjmlcwfhlknuegwu.supabase.co/auth/v1/callback`  
    (Google Cloud console does not need the Vercel domain for Supabase-hosted OAuth.)

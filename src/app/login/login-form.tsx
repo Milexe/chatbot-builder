@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 
 import {
-  signInWithGoogle,
   submitEmailAuth,
   type AuthActionState,
 } from "@/app/login/actions";
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { createClient } from "@/lib/supabase/client";
 
 const initialState: AuthActionState = { ok: false, message: "" };
 
@@ -18,15 +18,42 @@ type Mode = "signin" | "signup";
 
 export function LoginForm() {
   const [mode, setMode] = useState<Mode>("signin");
+  const [googleError, setGoogleError] = useState("");
+  const [googlePending, startGoogle] = useTransition();
+
+  function handleGoogleSignIn() {
+    setGoogleError("");
+    startGoogle(async () => {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        },
+      });
+      if (error) {
+        setGoogleError(error.message);
+      }
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <form action={signInWithGoogle}>
-        <Button type="submit" variant="outline" className="w-full gap-2">
-          <GoogleIcon />
-          Continue with Google
-        </Button>
-      </form>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full gap-2"
+        disabled={googlePending}
+        onClick={handleGoogleSignIn}
+      >
+        <GoogleIcon />
+        {googlePending ? "Redirecting…" : "Continue with Google"}
+      </Button>
+      {googleError ? (
+        <p className="text-sm text-destructive" role="status">
+          {googleError}
+        </p>
+      ) : null}
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />

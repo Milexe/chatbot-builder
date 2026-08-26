@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -11,14 +10,6 @@ export type AuthActionState = {
 };
 
 const MIN_PASSWORD_LENGTH = 8;
-
-function getAppOrigin(headerStore: Headers): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    headerStore.get("origin") ??
-    "http://localhost:3000"
-  );
-}
 
 function parseCredentials(formData: FormData): {
   email: string;
@@ -91,27 +82,6 @@ export async function submitEmailAuth(
   }
 
   redirect("/dashboard");
-}
-
-export async function signInWithGoogle() {
-  const headerStore = await headers();
-  const origin = getAppOrigin(headerStore);
-  const supabase = await createClient();
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${origin}/auth/callback?next=/dashboard`,
-    },
-  });
-
-  if (error || !data.url) {
-    redirect(
-      `/login?error=${encodeURIComponent(error?.message ?? "Google sign-in failed")}`,
-    );
-  }
-
-  redirect(data.url);
 }
 
 export async function signOut() {
