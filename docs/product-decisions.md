@@ -11,8 +11,8 @@ Pricing table amounts are still placeholders until Stripe.
 - Next.js App Router + TypeScript + Tailwind + shadcn/ui
 - Supabase Free: Auth, Postgres, Storage, pgvector
 - OpenRouter: chat + embeddings
-- Stripe test: later
-- Deploy: Vercel Hobby later
+- Stripe test / mock billing: **MVP finish backlog** (see below)
+- Deploy: Vercel (+ GitHub Actions CI)
 
 ## Auth (locked)
 
@@ -21,7 +21,7 @@ Pricing table amounts are still placeholders until Stripe.
 
 ## Knowledge / indexing (shipped)
 
-- TXT / MD only (PDF later)
+- TXT / MD only (**PDF** → MVP finish backlog)
 - Upload via server action → Storage → background index (`after`)
 - Status: `pending` → `processing` → `ready` | `failed`
 - Embeddings: `OPENROUTER_EMBEDDING_MODEL` (default `openai/text-embedding-3-small`, 1536 dims)
@@ -30,7 +30,7 @@ Pricing table amounts are still placeholders until Stripe.
 ## In-app chat (shipped)
 
 - RAG via `match_document_chunks` + OpenRouter chat model
-- Non-streaming responses for now
+- Non-streaming responses for now (**streaming** → MVP finish backlog, app + widget together)
 - Owner monthly message quota from plan (`profiles.messages_used_this_month`)
 - Citation chunk ids stored on assistant messages; UI citations later
 
@@ -40,12 +40,13 @@ Pricing table amounts are still placeholders until Stripe.
 | --- | --- |
 | Integration | Script tag: `<script src="…/widget.js" data-bot-id="…">` |
 | Shared logic | [`src/lib/bot-answer.ts`](../src/lib/bot-answer.ts) for dashboard + embed |
-| Streaming | No (add later for app + widget together) |
+| Streaming | No yet (same backlog item as in-app) |
 | Owner quota | Same monthly plan pool as in-app chat |
 | Visitor quota | **Per browser session** — `EMBED_SESSION_MESSAGE_LIMIT` (15) |
 | Rate limit | Per IP + bot — `EMBED_RATE_LIMIT_*` (10 / 60s) |
 | Allowed origins | Enforced when `bots.allowed_origins` is non-empty; empty or `*` = any site. Match uses `Origin`, else `Referer` (same-origin GET often omits Origin). One origin covers all paths on that host. |
 | Branding | Shown unless plan has `removeBranding` |
+| Custom colors | Plan flag `customColors` exists; **not enforced yet** (Free can still set `primary_color`) |
 
 API:
 
@@ -56,12 +57,39 @@ Script: [`public/widget.js`](../public/widget.js). Copy snippet on the bot dashb
 
 Origin matching uses the browser `Origin` header, with `Referer` as fallback. Spoofable outside browsers; still stops casual copy-paste embeds.
 
-## Deferred
+## UI / landing (shipped)
 
-- PDF upload
-- Stripe / real billing enforcement beyond local plan field
+- Landing with features, pricing, optional live demo widget
+- Dashboard bots grid, create/edit dialog, pause/delete, knowledge + embed
+- Design pass done (Space Grotesk, violet brand, chat chrome aligned)
+
+---
+
+## MVP finish backlog
+
+Ordered for closing the assignment / launch feel. These are **reasonable end-of-MVP items** — not a second product.
+
+| # | Item | Why it belongs |
+| --- | --- | --- |
+| 1 | **Stripe (test) or mock billing** | Explicit TZ requirement; plans/gates exist, upgrade path does not |
+| 2 | **README truth-up** | Drop/claim only what ships (no PDF/citations until real); keep setup accurate |
+| 3 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist; matches pricing copy |
+| 4 | **Chat streaming** | Embed + in-app via shared OpenRouter stream; better demo feel, not a TZ hard requirement |
+| 5 | **PDF upload + extract** | README/marketing promise; TXT/MD already prove RAG — PDF is the useful next format |
+
+### Acceptance sketches
+
+- **Billing:** From pricing/dashboard, user can move Free → Pro/Business (Stripe Checkout test **or** mock that updates `profiles.plan`). Gated limits follow the new plan.
+- **README:** Features list matches code; no “PDF” / “citations in UI” until shipped.
+- **Custom colors:** Server rejects non-default `primary_color` on Free; UI disables or hides picker.
+- **Streaming:** Tokens appear in widget (and app chat) without waiting for full JSON; quotas still applied; assistant row saved after stream completes.
+- **PDF:** `.pdf` accepted, text extracted, same indexing pipeline as TXT/MD.
+
+---
+
+## Later (post-MVP / nice-to-have)
+
 - Wildcard / subdomain origin patterns
-- Chat streaming + optimistic user bubbles
 - Citation chips in chat UI
-- Unit/E2E tests
-- UI polish / design pass
+- Unit / E2E tests
+- Re-enable email confirmation + SMTP before a real public launch
