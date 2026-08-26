@@ -12,6 +12,13 @@
     return;
   }
 
+  // One widget instance per page — React Strict Mode / remounts can inject twice.
+  document.querySelectorAll("#chatbot-builder-widget-root").forEach(function (node) {
+    node.remove();
+  });
+
+  var hideLauncher = script.getAttribute("data-hide-launcher") === "true";
+
   var src = script.getAttribute("src") || "";
   var apiBase = src
     ? new URL(src, window.location.href).origin
@@ -73,29 +80,44 @@
   document.body.appendChild(root);
   var shadow = root.attachShadow({ mode: "open" });
 
+  if (!document.getElementById("cbb-widget-fonts")) {
+    var fontLink = document.createElement("link");
+    fontLink.id = "cbb-widget-fonts";
+    fontLink.rel = "stylesheet";
+    fontLink.href =
+      "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap";
+    document.head.appendChild(fontLink);
+  }
+
   var style = document.createElement("style");
   style.textContent = [
-    ":host, * { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }",
-    ".wrap { position: fixed; z-index: 2147483000; right: 20px; bottom: 20px; }",
-    ".launcher { width: 56px; height: 56px; border: 0; border-radius: 999px; color: #fff; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.25); font-size: 22px; }",
-    ".panel { position: absolute; right: 0; bottom: 68px; width: min(380px, calc(100vw - 24px)); height: min(560px, calc(100vh - 100px)); background: #fff; color: #111; border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,.28); display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(0,0,0,.08); }",
+    ":host, * { box-sizing: border-box; font-family: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; }",
+    "button, a, [role='button'] { cursor: pointer; }",
+    "button:disabled { cursor: not-allowed; }",
+    ".wrap { position: fixed; z-index: 2147483000; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); left: auto; }",
+    ".launcher { width: 56px; height: 56px; border: 0; border-radius: 50%; color: #fff; box-shadow: 0 8px 24px rgba(70, 50, 110, .22); font-size: 22px; transition: transform .15s ease; }",
+    ".launcher:hover { transform: translateY(-1px); }",
+    ".panel { position: absolute; right: 0; bottom: 68px; width: min(380px, calc(100vw - 24px)); height: min(560px, calc(100vh - 100px)); color: #1c1830; border-radius: 16px; box-shadow: 0 4px 18px rgba(40, 30, 70, .1); display: flex; flex-direction: column; overflow: hidden; border: 0; }",
+    ".panel.panel-flush { bottom: 0; }",
     ".panel[hidden] { display: none !important; }",
-    ".header { padding: 14px 16px; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 8px; }",
-    ".header strong { font-size: 15px; }",
-    ".close { background: transparent; border: 0; color: inherit; font-size: 20px; cursor: pointer; line-height: 1; }",
-    ".messages { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #f7f7f8; }",
-    ".bubble { max-width: 85%; padding: 10px 12px; border-radius: 12px; font-size: 14px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }",
-    ".bubble.bot { align-self: flex-start; background: #fff; border: 1px solid rgba(0,0,0,.06); }",
-    ".bubble.user { align-self: flex-end; color: #fff; }",
-    ".bubble.system { align-self: center; background: transparent; color: #666; font-size: 12px; }",
-    ".footer { padding: 10px; border-top: 1px solid rgba(0,0,0,.08); background: #fff; }",
-    ".row { display: flex; gap: 8px; }",
-    ".row textarea { flex: 1; resize: none; min-height: 44px; max-height: 96px; border-radius: 10px; border: 1px solid rgba(0,0,0,.15); padding: 10px; font: inherit; }",
-    ".row button { border: 0; border-radius: 10px; color: #fff; padding: 0 14px; cursor: pointer; font-weight: 600; }",
-    ".row button:disabled { opacity: .6; cursor: default; }",
-    ".brand { margin-top: 8px; text-align: center; font-size: 11px; color: #888; }",
+    ".header { padding: 12px 16px; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 8px; }",
+    ".header strong { font-size: 14px; font-weight: 600; letter-spacing: -0.03em; }",
+    ".close { background: transparent; border: 0; color: inherit; font-size: 20px; line-height: 1; opacity: .9; }",
+    ".messages { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }",
+    ".bubble { margin: 0; padding: 8px 12px; font-size: 14px; line-height: 1.375; white-space: pre-wrap; word-break: break-word; }",
+    ".bubble.bot { align-self: flex-start; max-width: 90%; background: #fff; border: 1px solid rgba(28, 24, 48, .12); border-radius: 16px 16px 16px 6px; }",
+    ".bubble.user { align-self: flex-end; max-width: 88%; color: #fff; border-radius: 16px 16px 6px 16px; }",
+    ".bubble.system { align-self: flex-start; background: transparent; color: #6b6578; font-size: 13px; padding: 0; border: 0; }",
+    ".footer { padding: 10px 12px 8px; border-top: 1px solid rgba(28, 24, 48, .1); background: #fff; }",
+    ".row { display: flex; align-items: center; gap: 8px; }",
+    ".row textarea { flex: 1; resize: none; height: 44px; min-height: 44px; max-height: 44px; border-radius: 12px; border: 1px solid rgba(28, 24, 48, .14); padding: 10px 12px; font: inherit; background: #fff; color: inherit; line-height: 1.25; }",
+    ".row textarea::placeholder { color: #8a8496; }",
+    ".row .send { border: 0; border-radius: 12px; color: #fff; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }",
+    ".row .send svg { width: 20px; height: 20px; display: block; }",
+    ".row .send:disabled { opacity: .6; }",
+    ".brand { margin-top: 4px; text-align: center; font-size: 11px; line-height: 1.2; color: #7a7388; }",
     ".brand a { color: inherit; }",
-    ".error { color: #b91c1c; font-size: 12px; margin: 0 0 8px; }",
+    ".error { color: #b42318; font-size: 12px; margin: 0 0 6px; }",
   ].join("\n");
   shadow.appendChild(style);
 
@@ -104,7 +126,12 @@
   shadow.appendChild(wrap);
 
   function color() {
-    return (state.config && state.config.primaryColor) || "#111827";
+    return (state.config && state.config.primaryColor) || "#8B7EB8";
+  }
+
+  function chatSurface() {
+    // Keep in sync with chatSurfaceFromPrimary() in src/lib/bot-defaults.ts (5% mix).
+    return "color-mix(in srgb, " + color() + " 5%, white)";
   }
 
   function render() {
@@ -113,28 +140,31 @@
     // Avoid a default-color flash: hide until config arrives (errors still show).
     wrap.style.visibility = state.config || state.error ? "visible" : "hidden";
 
+    var showLauncher = !hideLauncher && !state.open;
     var launcher = document.createElement("button");
     launcher.className = "launcher";
     launcher.type = "button";
     launcher.style.background = color();
-    launcher.setAttribute("aria-label", state.open ? "Close chat" : "Open chat");
-    launcher.textContent = state.open ? "×" : "💬";
+    launcher.setAttribute("aria-label", "Open chat");
+    launcher.textContent = "💬";
     launcher.addEventListener("click", function () {
-      state.open = !state.open;
+      state.open = true;
       render();
-      if (state.open && !state.config) {
+      if (!state.config) {
         loadConfig();
       }
     });
-    wrap.appendChild(launcher);
+    if (showLauncher) {
+      wrap.appendChild(launcher);
+    }
 
     var panel = document.createElement("div");
-    panel.className = "panel";
+    panel.className = "panel" + (showLauncher ? "" : " panel-flush");
+    panel.style.background = color();
     if (!state.open) panel.hidden = true;
 
     var header = document.createElement("div");
     header.className = "header";
-    header.style.background = color();
     header.innerHTML =
       "<strong></strong><button class='close' type='button' aria-label='Close'>×</button>";
     header.querySelector("strong").textContent =
@@ -147,6 +177,7 @@
 
     var messages = document.createElement("div");
     messages.className = "messages";
+    messages.style.background = chatSurface();
 
     if (state.config && state.config.welcomeMessage) {
       var welcome = document.createElement("div");
@@ -185,12 +216,15 @@
     var row = document.createElement("div");
     row.className = "row";
     var input = document.createElement("textarea");
-    input.rows = 2;
+    input.rows = 1;
     input.placeholder = "Ask a question…";
     input.disabled = state.loading || !state.config;
     var send = document.createElement("button");
     send.type = "button";
-    send.textContent = "Send";
+    send.className = "send";
+    send.setAttribute("aria-label", "Send");
+    send.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>';
     send.style.background = color();
     send.disabled = state.loading || !state.config;
 
@@ -226,6 +260,16 @@
     wrap.appendChild(panel);
 
     messages.scrollTop = messages.scrollHeight;
+
+    try {
+      window.dispatchEvent(
+        new CustomEvent("chatbot-builder:visibility", {
+          detail: { open: state.open },
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
   }
 
   function loadConfig() {
@@ -239,11 +283,32 @@
       .then(function (data) {
         state.config = data;
         state.error = "";
+        root.style.display = "";
+        wrap.style.display = "";
+        wrap.style.visibility = "visible";
         render();
+        try {
+          window.dispatchEvent(new CustomEvent("chatbot-builder:ready"));
+        } catch {
+          /* ignore */
+        }
       })
-      .catch(function (err) {
-        state.error = err.message || "Failed to load bot";
-        render();
+      .catch(function () {
+        // Paused / missing bot — remove the widget entirely.
+        state.config = null;
+        state.error = "";
+        state.open = false;
+        wrap.innerHTML = "";
+        root.style.display = "none";
+        try {
+          window.dispatchEvent(
+            new CustomEvent("chatbot-builder:visibility", {
+              detail: { open: false },
+            }),
+          );
+        } catch {
+          /* ignore */
+        }
       });
   }
 
@@ -285,6 +350,15 @@
         render();
       });
   }
+
+  window.addEventListener("chatbot-builder:open", function () {
+    state.open = true;
+    state.error = "";
+    render();
+    if (!state.config) {
+      loadConfig();
+    }
+  });
 
   render();
   loadConfig();

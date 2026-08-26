@@ -19,6 +19,87 @@ export type DocumentActionState = {
   message: string;
 };
 
+async function uploadOneFile({
+  supabase,
+  userId,
+  botId,
+  file,
+  maxBytes,
+  maxFileMb,
+  planName,
+}: {
+  supabase: Awaited<ReturnType<typeof requireUser>>["supabase"];
+  userId: string;
+  botId: string;
+  file: File;
+  maxBytes: number;
+  maxFileMb: number;
+  planName: string;
+}): Promise<{ ok: true; documentId: string } | { ok: false; message: string }> {
+  if (file.size === 0) {
+    return { ok: false, message: `${file.name}: empty file.` };
+  }
+  if (file.size > maxBytes) {
+    return {
+      ok: false,
+      message: `${file.name}: too large (max ${maxFileMb} MB on ${planName}).`,
+    };
+  }
+  if (!isAllowedDocumentFile(file.name, file.type)) {
+    return {
+      ok: false,
+      message: `${file.name}: only .txt / .md supported.`,
+    };
+  }
+
+  const documentId = randomUUID();
+  const extension = getDocumentExtension(file.name) || ".txt";
+  const safeName = file.name.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 120);
+  const storagePath = `${userId}/${botId}/${documentId}${extension}`;
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const { error: uploadError } = await supabase.storage
+    .from(DOCUMENTS_BUCKET)
+    .upload(storagePath, bytes, {
+      contentType: file.type || "text/plain",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    return {
+      ok: false,
+      message: `${file.name}: upload failed (${uploadError.message}).`,
+    };
+  }
+
+  const { error: insertError } = await supabase.from("documents").insert({
+    id: documentId,
+    bot_id: botId,
+    owner_id: userId,
+    file_name: safeName,
+    storage_path: storagePath,
+    mime_type: file.type || "text/plain",
+    byte_size: file.size,
+    status: "pending",
+  });
+
+  if (insertError) {
+    await supabase.storage.from(DOCUMENTS_BUCKET).remove([storagePath]);
+    return { ok: false, message: `${file.name}: ${insertError.message}` };
+  }
+
+  await supabase
+    .from("documents")
+    .update({
+      status: "processing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", documentId)
+    .eq("owner_id", userId);
+
+  return { ok: true, documentId };
+}
+
 export async function uploadDocument(
   botId: string,
   _prev: DocumentActionState,
@@ -46,103 +127,79 @@ export async function uploadDocument(
   if (countError) {
     return { ok: false, message: countError.message };
   }
-  if ((count ?? 0) >= plan.limits.documents) {
+
+  const used = count ?? 0;
+  const remaining = plan.limits.documents - used;
+  if (remaining <= 0) {
     return {
       ok: false,
       message: `Your ${plan.name} plan allows ${plan.limits.documents} documents.`,
     };
   }
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: "Choose a TXT or Markdown file." };
+  const rawFiles = formData.getAll("file");
+  const files = rawFiles.filter((entry): entry is File => {
+    return entry instanceof File && Boolean(entry.name);
+  });
+
+  if (files.length === 0) {
+    return { ok: false, message: "Choose at least one TXT or Markdown file." };
+  }
+  if (files.length > remaining) {
+    return {
+      ok: false,
+      message: `You can upload ${remaining} more file${remaining === 1 ? "" : "s"} on ${plan.name} (${used}/${plan.limits.documents}).`,
+    };
   }
 
   const maxBytes = plan.limits.maxFileMb * 1024 * 1024;
-  if (file.size > maxBytes) {
-    return {
-      ok: false,
-      message: `File is too large. Max ${plan.limits.maxFileMb} MB on ${plan.name}.`,
-    };
-  }
+  const uploadedIds: string[] = [];
+  const errors: string[] = [];
 
-  if (!isAllowedDocumentFile(file.name, file.type)) {
-    return {
-      ok: false,
-      message: "Only .txt, .md, and .markdown files are supported for now.",
-    };
-  }
-
-  const documentId = randomUUID();
-  const extension = getDocumentExtension(file.name) || ".txt";
-  const safeName = file.name.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 120);
-  const storagePath = `${user.id}/${botId}/${documentId}${extension}`;
-
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const { error: uploadError } = await supabase.storage
-    .from(DOCUMENTS_BUCKET)
-    .upload(storagePath, bytes, {
-      contentType: file.type || "text/plain",
-      upsert: false,
+  for (const file of files) {
+    const result = await uploadOneFile({
+      supabase,
+      userId: user.id,
+      botId,
+      file,
+      maxBytes,
+      maxFileMb: plan.limits.maxFileMb,
+      planName: plan.name,
     });
-
-  if (uploadError) {
-    return {
-      ok: false,
-      message: `Upload failed: ${uploadError.message}. Ensure the documents Storage bucket exists.`,
-    };
-  }
-
-  const { error: insertError } = await supabase.from("documents").insert({
-    id: documentId,
-    bot_id: botId,
-    owner_id: user.id,
-    file_name: safeName,
-    storage_path: storagePath,
-    mime_type: file.type || "text/plain",
-    byte_size: file.size,
-    status: "pending",
-  });
-
-  if (insertError) {
-    await supabase.storage.from(DOCUMENTS_BUCKET).remove([storagePath]);
-    return { ok: false, message: insertError.message };
-  }
-
-  // Mark processing before the response so the list does not flash as pending.
-  await supabase
-    .from("documents")
-    .update({
-      status: "processing",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", documentId)
-    .eq("owner_id", user.id);
-
-  const ownerId = user.id;
-  const path = `/dashboard/bots/${botId}`;
-
-  // Prefer background indexing so the upload form is not stuck on pending for ~8s+.
-  // Fall back to sync if the service role key is missing (local misconfig).
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const indexed = await indexDocument(supabase, documentId, ownerId);
-    revalidatePath(path);
-    if (!indexed.ok) {
-      return {
-        ok: false,
-        message: `Uploaded, but indexing failed: ${indexed.message}`,
-      };
+    if (result.ok) {
+      uploadedIds.push(result.documentId);
+    } else {
+      errors.push(result.message);
     }
+  }
+
+  const path = `/dashboard/bots/${botId}`;
+  const ownerId = user.id;
+
+  if (uploadedIds.length === 0) {
+    return { ok: false, message: errors.join(" ") || "Upload failed." };
+  }
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    for (const documentId of uploadedIds) {
+      await indexDocument(supabase, documentId, ownerId);
+    }
+    revalidatePath(path);
     return {
-      ok: true,
-      message: `Uploaded and indexed. ${indexed.message}`,
+      ok: errors.length === 0,
+      message:
+        errors.length === 0
+          ? `Uploaded ${uploadedIds.length} file${uploadedIds.length === 1 ? "" : "s"}.`
+          : `Uploaded ${uploadedIds.length}, with errors: ${errors.join(" ")}`,
     };
   }
 
   after(async () => {
     try {
       const admin = createServiceClient();
-      await indexDocument(admin, documentId, ownerId);
+      for (const documentId of uploadedIds) {
+        await indexDocument(admin, documentId, ownerId);
+      }
     } finally {
       revalidatePath(path);
     }
@@ -150,8 +207,11 @@ export async function uploadDocument(
 
   revalidatePath(path);
   return {
-    ok: true,
-    message: "Uploaded. Indexing in the background…",
+    ok: errors.length === 0,
+    message:
+      errors.length === 0
+        ? `Uploaded ${uploadedIds.length}. Indexing…`
+        : `Uploaded ${uploadedIds.length}, with errors: ${errors.join(" ")}`,
   };
 }
 

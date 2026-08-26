@@ -47,3 +47,6 @@ next-env.d.ts
 # local Cursor IDE settings
 .cursor/
 
+# local widget playground (landing has live demo now)
+/public/widget-test.html
+

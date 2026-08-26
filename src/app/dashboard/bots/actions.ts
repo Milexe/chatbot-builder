@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
+import {
+  DEFAULT_BOT_COLOR,
+  DEFAULT_BOT_NAME,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_WELCOME_MESSAGE,
+} from "@/lib/bot-defaults";
 import { parseAllowedOriginsText } from "@/lib/embed-guards";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
@@ -12,35 +18,33 @@ export type BotActionState = {
   message: string;
 };
 
-const DEFAULT_COLOR = "#111827";
-
 function parseBotFields(formData: FormData): {
   name: string;
   welcomeMessage: string;
   primaryColor: string;
+  systemPrompt: string;
   allowedOrigins: string[];
   error?: string;
 } {
-  const name = String(formData.get("name") ?? "").trim();
-  const welcomeMessage = String(formData.get("welcome_message") ?? "").trim();
-  const primaryColor = String(formData.get("primary_color") ?? DEFAULT_COLOR).trim();
+  const name =
+    String(formData.get("name") ?? "").trim() || DEFAULT_BOT_NAME;
+  const welcomeMessage =
+    String(formData.get("welcome_message") ?? "").trim() ||
+    DEFAULT_WELCOME_MESSAGE;
+  const primaryColorRaw = String(formData.get("primary_color") ?? "").trim();
+  const primaryColor = primaryColorRaw || DEFAULT_BOT_COLOR;
+  const systemPrompt =
+    String(formData.get("system_prompt") ?? "").trim() ||
+    DEFAULT_SYSTEM_PROMPT;
   const allowedOriginsRaw = String(formData.get("allowed_origins") ?? "");
   const parsedOrigins = parseAllowedOriginsText(allowedOriginsRaw);
 
-  if (!name) {
-    return {
-      name,
-      welcomeMessage,
-      primaryColor,
-      allowedOrigins: [],
-      error: "Name is required.",
-    };
-  }
   if (name.length > 80) {
     return {
       name,
       welcomeMessage,
       primaryColor,
+      systemPrompt,
       allowedOrigins: [],
       error: "Name must be 80 characters or fewer.",
     };
@@ -50,8 +54,19 @@ function parseBotFields(formData: FormData): {
       name,
       welcomeMessage,
       primaryColor,
+      systemPrompt,
       allowedOrigins: [],
       error: "Welcome message must be 500 characters or fewer.",
+    };
+  }
+  if (systemPrompt.length > 4000) {
+    return {
+      name,
+      welcomeMessage,
+      primaryColor,
+      systemPrompt,
+      allowedOrigins: [],
+      error: "System prompt must be 4000 characters or fewer.",
     };
   }
   if (!/^#[0-9A-Fa-f]{6}$/.test(primaryColor)) {
@@ -59,8 +74,9 @@ function parseBotFields(formData: FormData): {
       name,
       welcomeMessage,
       primaryColor,
+      systemPrompt,
       allowedOrigins: [],
-      error: "Color must be a hex value like #111827.",
+      error: `Color must be a hex value like ${DEFAULT_BOT_COLOR}.`,
     };
   }
   if (parsedOrigins.error) {
@@ -68,6 +84,7 @@ function parseBotFields(formData: FormData): {
       name,
       welcomeMessage,
       primaryColor,
+      systemPrompt,
       allowedOrigins: [],
       error: parsedOrigins.error,
     };
@@ -75,9 +92,9 @@ function parseBotFields(formData: FormData): {
 
   return {
     name,
-    welcomeMessage:
-      welcomeMessage || "Hi! Ask me anything about our docs.",
+    welcomeMessage,
     primaryColor,
+    systemPrompt,
     allowedOrigins: parsedOrigins.origins,
   };
 }
@@ -93,25 +110,20 @@ export async function createBot(
     return { ok: false, message: fields.error };
   }
 
-  const { count, error: countError } = await supabase
+  const { data: existingBots, error: botsError } = await supabase
     .from("bots")
-    .select("id", { count: "exact", head: true })
+    .select("slug")
     .eq("owner_id", user.id);
 
-  if (countError) {
-    return { ok: false, message: countError.message };
+  if (botsError) {
+    return { ok: false, message: botsError.message };
   }
-  if ((count ?? 0) >= plan.limits.bots) {
+  if ((existingBots?.length ?? 0) >= plan.limits.bots) {
     return {
       ok: false,
       message: `Your ${plan.name} plan allows ${plan.limits.bots} bot${plan.limits.bots === 1 ? "" : "s"}.`,
     };
   }
-
-  const { data: existingBots } = await supabase
-    .from("bots")
-    .select("slug")
-    .eq("owner_id", user.id);
 
   const slug = uniqueSlug(
     slugify(fields.name),
@@ -126,6 +138,8 @@ export async function createBot(
       slug,
       welcome_message: fields.welcomeMessage,
       primary_color: fields.primaryColor,
+      system_prompt: fields.systemPrompt,
+      allowed_origins: fields.allowedOrigins,
     })
     .select("id")
     .single();
@@ -151,7 +165,7 @@ export async function updateBot(
 
   const { data: bot } = await supabase
     .from("bots")
-    .select("id, slug, owner_id")
+    .select("id")
     .eq("id", botId)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -178,6 +192,7 @@ export async function updateBot(
       slug: nextSlug,
       welcome_message: fields.welcomeMessage,
       primary_color: fields.primaryColor,
+      system_prompt: fields.systemPrompt,
       allowed_origins: fields.allowedOrigins,
       updated_at: new Date().toISOString(),
     })
@@ -190,7 +205,29 @@ export async function updateBot(
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/bots/${botId}`);
-  return { ok: true, message: "Bot updated." };
+  return { ok: true, message: "Saved." };
+}
+
+export async function setBotPaused(botId: string, paused: boolean) {
+  const { supabase, user } = await requireUser();
+
+  const { error } = await supabase
+    .from("bots")
+    .update({
+      is_public: !paused,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", botId)
+    .eq("owner_id", user.id);
+
+  if (error) {
+    redirect(
+      `/dashboard/bots/${botId}?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/bots/${botId}`);
 }
 
 export async function deleteBot(botId: string) {
@@ -217,7 +254,9 @@ export async function deleteBot(botId: string) {
     .eq("owner_id", user.id);
 
   if (error) {
-    redirect(`/dashboard/bots/${botId}?error=${encodeURIComponent(error.message)}`);
+    redirect(
+      `/dashboard/bots/${botId}?error=${encodeURIComponent(error.message)}`,
+    );
   }
 
   revalidatePath("/dashboard");

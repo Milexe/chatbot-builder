@@ -40,7 +40,7 @@ export async function sendChatMessage(
 
   const { data: bot } = await supabase
     .from("bots")
-    .select("id, system_prompt, welcome_message")
+    .select("id, system_prompt")
     .eq("id", botId)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -133,6 +133,7 @@ export async function sendChatMessage(
 export async function clearConversation(botId: string, conversationId: string) {
   const { supabase, user } = await requireUser();
 
+  // Messages cascade with the conversation; one round-trip is enough.
   const { error } = await supabase
     .from("conversations")
     .delete()
@@ -144,5 +145,6 @@ export async function clearConversation(botId: string, conversationId: string) {
     throw new Error(error.message || "Could not clear conversation.");
   }
 
-  revalidatePath(`/dashboard/bots/${botId}`);
+  // Page layout only — avoid layout/root fan-out on a simple clear.
+  revalidatePath(`/dashboard/bots/${botId}`, "page");
 }

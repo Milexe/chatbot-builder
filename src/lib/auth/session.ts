@@ -17,7 +17,7 @@ export async function requireUser() {
   return { supabase, user };
 }
 
-export async function getProfile(
+async function getProfile(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
 ): Promise<ProfileRow | null> {

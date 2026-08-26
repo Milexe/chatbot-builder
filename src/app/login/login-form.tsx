@@ -28,7 +28,9 @@ export function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+          // Keep this path exact — query strings often fail Supabase Redirect URL
+          // matching and fall back to Site URL (production).
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) {

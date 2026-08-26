@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CheckIcon, CopyIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -28,17 +29,23 @@ export function EmbedSnippet({ botId }: { botId: string }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Paste this before <code className="text-xs">&lt;/body&gt;</code> on your
-        site. Limits: owner monthly plan + 15 messages per visitor session + rate
-        limit. Lock domains under Settings → Allowed embed origins (empty =
-        any site).
+        Paste before <code className="text-xs">&lt;/body&gt;</code>.
       </p>
-      <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed">
-        {snippet}
-      </pre>
-      <Button type="button" size="sm" variant="outline" onClick={copy}>
-        {copied ? "Copied" : "Copy snippet"}
-      </Button>
+      <div className="relative">
+        <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-3 pr-12 text-xs leading-relaxed">
+          {snippet}
+        </pre>
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="outline"
+          className="absolute top-2 right-2"
+          onClick={copy}
+          aria-label={copied ? "Copied" : "Copy snippet"}
+        >
+          {copied ? <CheckIcon /> : <CopyIcon />}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,9 @@
-import Link from "next/link";
-
+import { BrandLink } from "@/components/brand-link";
+import { SmoothAnchor } from "@/components/smooth-anchor";
 import { buttonVariants } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -11,18 +12,16 @@ export async function SiteHeader() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="font-semibold tracking-tight">
-          Chatbot Builder
-        </Link>
-        <nav className="flex items-center gap-2">
-          <Link
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
+        <BrandLink className="font-heading truncate text-base font-semibold tracking-tight sm:text-lg" />
+        <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <SmoothAnchor
             href="/#pricing"
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
           >
             Pricing
-          </Link>
+          </SmoothAnchor>
           {user ? (
             <Link
               href="/dashboard"
@@ -31,10 +30,7 @@ export async function SiteHeader() {
               Dashboard
             </Link>
           ) : (
-            <Link
-              href="/login"
-              className={cn(buttonVariants({ size: "sm" }))}
-            >
+            <Link href="/login" className={cn(buttonVariants({ size: "sm" }))}>
               Sign in
             </Link>
           )}
