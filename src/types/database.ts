@@ -38,3 +38,12 @@ export type DocumentRow = {
   created_at: string;
   updated_at: string;
 };
+
+export type MessageRow = {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  citation_chunk_ids: string[] | null;
+  created_at: string;
+};

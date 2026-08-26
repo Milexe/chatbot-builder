@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { deleteBot } from "@/app/dashboard/bots/actions";
 import { BotSettingsForm } from "@/app/dashboard/bots/[botId]/bot-settings-form";
+import { ChatPanel } from "@/app/dashboard/bots/[botId]/chat-panel";
 import { DocumentsPanel } from "@/app/dashboard/bots/[botId]/documents-panel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -12,10 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
+import { ensureMessagePeriod } from "@/lib/usage";
 import { cn } from "@/lib/utils";
-import type { BotRow, DocumentRow } from "@/types/database";
+import type { BotRow, DocumentRow, MessageRow } from "@/types/database";
 
 type BotPageProps = {
   params: Promise<{ botId: string }>;
@@ -29,7 +30,8 @@ export default async function BotDetailPage({
   const { botId } = await params;
   const query = await searchParams;
   const { supabase, user } = await requireUser();
-  const { plan } = await requireProfilePlan(supabase, user.id);
+  const { plan, profile } = await requireProfilePlan(supabase, user.id);
+  const usageProfile = await ensureMessagePeriod(supabase, profile);
 
   const { data: bot } = await supabase
     .from("bots")
@@ -63,6 +65,32 @@ export default async function BotDetailPage({
     .eq("owner_id", user.id);
 
   const docsUsed = accountDocCount ?? documentRows.length;
+  const readyDocumentCount = documentRows.filter(
+    (doc) => doc.status === "ready",
+  ).length;
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("bot_id", botId)
+    .eq("owner_id", user.id)
+    .eq("source", "app")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const conversationId = (conversation?.id as string | undefined) ?? null;
+
+  let messageRows: MessageRow[] = [];
+  if (conversationId) {
+    const { data: messages } = await supabase
+      .from("messages")
+      .select("id, conversation_id, role, content, citation_chunk_ids, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+
+    messageRows = (messages ?? []) as MessageRow[];
+  }
 
   return (
     <div className="space-y-8">
@@ -93,6 +121,31 @@ export default async function BotDetailPage({
         </p>
       ) : null}
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Chat</CardTitle>
+          <CardDescription>
+            Answers use retrieved chunks from your ready documents.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChatPanel
+            botId={botId}
+            conversationId={conversationId}
+            welcomeMessage={botRow.welcome_message}
+            messages={messageRows.map((message) => ({
+              id: message.id,
+              role: message.role,
+              content: message.content,
+              created_at: message.created_at,
+            }))}
+            messagesUsed={usageProfile.messages_used_this_month}
+            messagesLimit={plan.limits.messagesPerMonth}
+            readyDocumentCount={readyDocumentCount}
+          />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -111,7 +164,7 @@ export default async function BotDetailPage({
             <CardTitle>Knowledge</CardTitle>
             <CardDescription>
               Files are chunked and embedded after upload so chat can retrieve
-              them later.
+              them.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -126,12 +179,6 @@ export default async function BotDetailPage({
           </CardContent>
         </Card>
       </div>
-
-      <Separator />
-      <p className="text-sm text-muted-foreground">
-        In-app chat and the embed widget come next. Knowledge files are indexed
-        when you upload them.
-      </p>
     </div>
   );
 }
