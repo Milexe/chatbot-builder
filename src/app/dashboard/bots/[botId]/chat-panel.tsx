@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcwIcon, SendIcon } from "lucide-react";
 
@@ -50,7 +50,11 @@ async function readChatSse(
   }
 }
 
-/** In-app chat — same bubble language as the landing hero + embed widget. */
+function localId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** In-app chat — same bubble + scroll behavior as the embed widget. */
 export function ChatPanel({
   botId,
   conversationId,
@@ -77,44 +81,58 @@ export function ChatPanel({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [resetting, startReset] = useTransition();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [optimisticUser, setOptimisticUser] = useState<string | null>(null);
   const [streamingAssistant, setStreamingAssistant] = useState<string | null>(
     null,
   );
+  const [localMessages, setLocalMessages] = useState(messages);
   /** Set from stream meta when a new conversation is created mid-send. */
   const [streamConversationId, setStreamConversationId] = useState<
-    string | null
-  >(null);
-  // Hide bubbles for the conversation we just cleared until refresh lands.
-  const [clearedConversationId, setClearedConversationId] = useState<
     string | null
   >(null);
 
   const activeConversationId = streamConversationId ?? conversationId;
   const atLimit = messagesUsed >= messagesLimit;
-  const optimisticEmpty =
-    clearedConversationId !== null &&
-    clearedConversationId === activeConversationId;
-  const visibleMessages = optimisticEmpty ? [] : messages;
+  const localMessagesRef = useRef(localMessages);
+  localMessagesRef.current = localMessages;
 
-  const optimisticSynced =
-    optimisticUser !== null &&
-    messages.some(
-      (message) =>
-        message.role === "user" && message.content === optimisticUser,
-    );
-  const showOptimisticUser =
-    optimisticUser !== null && !optimisticSynced && !error;
+  // Adopt server history when idle and it has caught up (after refresh).
+  // While sending, localMessages is the source of truth — like widget state.messages.
+  useEffect(() => {
+    if (pending || streamingAssistant !== null) return;
+    const local = localMessagesRef.current;
+    if (local.length > 0 && messages.length < local.length) return;
+    if (local.length > 0) {
+      const lastUser = [...local].reverse().find((m) => m.role === "user");
+      if (
+        lastUser &&
+        !messages.some(
+          (m) => m.role === "user" && m.content === lastUser.content,
+        )
+      ) {
+        return;
+      }
+    }
+    setLocalMessages(messages);
+  }, [messages, pending, streamingAssistant]);
+
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [localMessages, streamingAssistant, welcomeMessage]);
 
   async function sendMessage(content: string) {
     setPending(true);
     setError(null);
-    setOptimisticUser(content);
     setStreamingAssistant("");
-    setClearedConversationId(null);
+    setLocalMessages((prev) => [
+      ...prev,
+      { id: localId("user"), role: "user", content },
+    ]);
     formRef.current?.reset();
 
     try {
@@ -135,6 +153,7 @@ export function ChatPanel({
       }
 
       let sawError: string | null = null;
+      let finalAnswer = "";
 
       await readChatSse(response, (event) => {
         if (event.type === "meta") {
@@ -151,14 +170,30 @@ export function ChatPanel({
           return;
         }
         if (event.type === "done") {
+          finalAnswer = event.answer;
           setStreamingAssistant(event.answer);
         }
       });
 
       if (sawError) {
         setStreamingAssistant(null);
+        setLocalMessages((prev) => [
+          ...prev,
+          {
+            id: localId("assistant"),
+            role: "assistant",
+            content: "Sorry — I could not answer that right now.",
+          },
+        ]);
       } else {
-        setOptimisticUser(null);
+        const answer = finalAnswer.trim();
+        if (!answer) {
+          throw new Error("Empty assistant response.");
+        }
+        setLocalMessages((prev) => [
+          ...prev,
+          { id: localId("assistant"), role: "assistant", content: answer },
+        ]);
         setStreamingAssistant(null);
         router.refresh();
       }
@@ -167,7 +202,14 @@ export function ChatPanel({
         sendError instanceof Error ? sendError.message : "Chat request failed.";
       setError(message);
       setStreamingAssistant(null);
-      setOptimisticUser(null);
+      setLocalMessages((prev) => [
+        ...prev,
+        {
+          id: localId("assistant"),
+          role: "assistant",
+          content: "Sorry — I could not answer that right now.",
+        },
+      ]);
       if (inputRef.current) {
         inputRef.current.value = content;
       }
@@ -187,8 +229,7 @@ export function ChatPanel({
 
   function resetChat() {
     if (!activeConversationId || resetting || pending) return;
-    setClearedConversationId(activeConversationId);
-    setOptimisticUser(null);
+    setLocalMessages([]);
     setStreamingAssistant(null);
     setError(null);
     startReset(() => {
@@ -198,7 +239,8 @@ export function ChatPanel({
           router.refresh();
         })
         .catch(() => {
-          setClearedConversationId(null);
+          // Restore from props on next idle sync after refresh failure.
+          setLocalMessages(messages);
         });
     });
   }
@@ -239,20 +281,21 @@ export function ChatPanel({
         </div>
 
         <div
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4"
+          ref={listRef}
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
           style={{ backgroundColor: chatSurfaceFromPrimary(primaryColor) }}
         >
-          <p className="max-w-[90%] rounded-2xl rounded-tl-md border border-border/70 bg-card px-3 py-2 text-sm leading-snug whitespace-pre-wrap">
+          <p className="max-w-[90%] self-start rounded-2xl rounded-tl-md border border-border/70 bg-card px-3 py-2 text-sm leading-snug break-words whitespace-pre-wrap">
             {welcomeMessage}
           </p>
-          {visibleMessages.map((message) => (
+          {localMessages.map((message) => (
             <p
               key={message.id}
               className={cn(
-                "px-3 py-2 text-sm leading-snug whitespace-pre-wrap",
+                "px-3 py-2 text-sm leading-snug break-words whitespace-pre-wrap",
                 message.role === "user"
-                  ? "ml-auto max-w-[88%] rounded-2xl rounded-tr-md text-primary-foreground"
-                  : "max-w-[90%] rounded-2xl rounded-tl-md border border-border/70 bg-card",
+                  ? "ml-auto max-w-[88%] self-end rounded-2xl rounded-tr-md text-primary-foreground"
+                  : "max-w-[90%] self-start rounded-2xl rounded-tl-md border border-border/70 bg-card",
               )}
               style={
                 message.role === "user"
@@ -263,16 +306,8 @@ export function ChatPanel({
               {message.content}
             </p>
           ))}
-          {showOptimisticUser ? (
-            <p
-              className="ml-auto max-w-[88%] rounded-2xl rounded-tr-md px-3 py-2 text-sm leading-snug whitespace-pre-wrap text-primary-foreground"
-              style={{ backgroundColor: primaryColor }}
-            >
-              {optimisticUser}
-            </p>
-          ) : null}
           {streamingAssistant !== null ? (
-            <p className="max-w-[90%] rounded-2xl rounded-tl-md border border-border/70 bg-card px-3 py-2 text-sm leading-snug whitespace-pre-wrap">
+            <p className="max-w-[90%] self-start rounded-2xl rounded-tl-md border border-border/70 bg-card px-3 py-2 text-sm leading-snug break-words whitespace-pre-wrap">
               {streamingAssistant || (pending ? "…" : "")}
             </p>
           ) : null}
