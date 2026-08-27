@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { BillingFlash } from "@/components/billing-flash";
 import { buttonVariants } from "@/components/ui/button";
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
+import { refreshSubscriptionFromStripe } from "@/lib/billing";
 import { PLANS, type Plan, type PlanId } from "@/lib/pricing";
 import { ensureMessagePeriod } from "@/lib/usage";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,25 @@ function planActionLabel(target: Plan, currentId: PlanId): string {
 export default async function PricingPage({ searchParams }: PricingPageProps) {
   const query = await searchParams;
   const { supabase, user } = await requireUser();
-  const { plan, profile } = await requireProfilePlan(supabase, user.id);
+  let { plan, profile } = await requireProfilePlan(supabase, user.id);
+
+  // Flexible billing stores cancel intent on `cancel_at`, not always
+  // `cancel_at_period_end` — refresh so the banner matches Stripe.
+  if (
+    profile.stripe_subscription_id &&
+    !profile.stripe_subscription_id.startsWith("mock_")
+  ) {
+    try {
+      await refreshSubscriptionFromStripe(
+        profile.stripe_subscription_id,
+        user.id,
+      );
+      ({ plan, profile } = await requireProfilePlan(supabase, user.id));
+    } catch {
+      // Keep last known profile if Stripe is unreachable.
+    }
+  }
+
   const usage = await ensureMessagePeriod(supabase, profile);
 
   const { count: botCount } = await supabase
@@ -94,10 +113,6 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
             Pricing & billing
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Stripe Checkout for upgrades · Customer Portal for cards, cancel at
-            period end, and invoices.
-          </p>
         </div>
 
         <BillingFlash message={statusMessage} />
@@ -122,12 +137,6 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               ) : periodEnd && isPaid ? (
                 <p className="mt-2 text-sm text-muted-foreground">
                   Current period ends {periodEnd}.
-                </p>
-              ) : null}
-              {profile.subscription_status ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Status: {profile.subscription_status}
-                  {cancelScheduled ? " (cancel scheduled)" : ""}
                 </p>
               ) : null}
             </div>
@@ -163,26 +172,16 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             </div>
           </dl>
 
-          <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
-            <li>
-              Max file size: {plan.limits.maxFileMb} MB · Branding{" "}
-              {plan.limits.removeBranding ? "removable" : "required on embed"}
-            </li>
-            <li>
-              Card details and invoices live in the Stripe Customer Portal —
-              we never store card numbers.
-            </li>
-          </ul>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Card details and invoices live in the Stripe Customer Portal — we
+            never store card numbers.
+          </p>
         </section>
 
         <section>
           <h2 className="font-heading text-xl font-semibold tracking-tight">
             Change plan
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Upgrades go through Checkout (or proration if you already
-            subscribe). Downgrades and cancel use Manage billing.
-          </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {PLANS.map((item) => {
               const isCurrent = item.id === currentId;

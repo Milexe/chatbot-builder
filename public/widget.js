@@ -74,6 +74,7 @@
     config: null,
     messages: loadHistory(),
     error: "",
+    draft: "",
   };
 
   var root = document.createElement("div");
@@ -110,8 +111,8 @@
     ".bubble.user { align-self: flex-end; max-width: 88%; color: #fff; border-radius: 16px 16px 6px 16px; }",
     ".bubble.system { align-self: flex-start; background: transparent; color: #6b6578; font-size: 13px; padding: 0; border: 0; }",
     ".footer { padding: 10px 12px 8px; border-top: 1px solid rgba(28, 24, 48, .1); background: #fff; }",
-    ".row { display: flex; align-items: center; gap: 8px; }",
-    ".row textarea { flex: 1; resize: none; height: 44px; min-height: 44px; max-height: 44px; border-radius: 12px; border: 1px solid rgba(28, 24, 48, .14); padding: 10px 12px; font: inherit; background: #fff; color: inherit; line-height: 1.25; }",
+    ".row { display: flex; align-items: flex-end; gap: 8px; }",
+    ".row textarea { flex: 1; resize: none; box-sizing: border-box; min-height: 44px; max-height: 120px; height: 44px; border-radius: 12px; border: 1px solid rgba(28, 24, 48, .14); padding: 11px 12px; font: inherit; background: #fff; color: inherit; line-height: 1.35; overflow-y: hidden; scrollbar-width: thin; }",
     ".row textarea::placeholder { color: #8a8496; }",
     ".row .send { border: 0; border-radius: 12px; color: #fff; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }",
     ".row .send svg { width: 20px; height: 20px; display: block; }",
@@ -225,6 +226,7 @@
     input.rows = 1;
     input.placeholder = "Ask a question…";
     input.disabled = state.loading || !state.config;
+    if (state.draft) input.value = state.draft;
     var send = document.createElement("button");
     send.type = "button";
     send.className = "send";
@@ -234,13 +236,29 @@
     send.style.background = color();
     send.disabled = state.loading || !state.config;
 
+    function fitComposer() {
+      input.style.overflowY = "hidden";
+      input.style.height = "44px";
+      var scroll = input.scrollHeight;
+      var next = Math.min(Math.max(scroll, 44), 120);
+      input.style.height = next + "px";
+      if (scroll > 120) {
+        input.style.overflowY = "auto";
+      }
+    }
+
     function submit() {
       var text = (input.value || "").trim();
       if (!text || state.loading) return;
+      state.draft = "";
       sendMessage(text);
     }
 
     send.addEventListener("click", submit);
+    input.addEventListener("input", function () {
+      state.draft = input.value;
+      fitComposer();
+    });
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -251,6 +269,7 @@
     row.appendChild(input);
     row.appendChild(send);
     footer.appendChild(row);
+    fitComposer();
 
     if (!state.config || state.config.showBranding !== false) {
       var brand = document.createElement("div");

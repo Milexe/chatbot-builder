@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 
 import { enforceLiveBotCap } from "@/lib/bot-live-cap";
 import {
+  getStripe,
   planIdFromPriceId,
   type PaidPlanId,
 } from "@/lib/stripe";
@@ -29,11 +30,26 @@ function priceIdFromSubscription(
 export function periodEndIsoFromSubscription(
   subscription: Stripe.Subscription,
 ): string | null {
+  if (typeof subscription.cancel_at === "number") {
+    return new Date(subscription.cancel_at * 1000).toISOString();
+  }
+
   const ends = subscription.items.data
     .map((item) => item.current_period_end)
     .filter((value): value is number => typeof value === "number");
   if (ends.length === 0) return null;
   return new Date(Math.max(...ends) * 1000).toISOString();
+}
+
+/**
+ * Classic billing sets `cancel_at_period_end`; flexible billing sets `cancel_at`.
+ * Treat either as "cancels at end of paid access".
+ */
+export function isCancelScheduled(subscription: Stripe.Subscription): boolean {
+  return (
+    Boolean(subscription.cancel_at_period_end) ||
+    typeof subscription.cancel_at === "number"
+  );
 }
 
 function customerIdFromSubscription(
@@ -72,7 +88,7 @@ function fieldsFromSubscription(
     stripe_customer_id: customerIdFromSubscription(subscription),
     stripe_subscription_id: isEntitled ? subscription.id : null,
     subscription_status: status,
-    cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
+    cancel_at_period_end: isCancelScheduled(subscription),
     current_period_end: periodEndIsoFromSubscription(subscription),
   };
 }
@@ -163,6 +179,16 @@ export async function applySubscriptionToProfile(
   }
 
   await updateProfileByCustomerId(customerId, fields);
+}
+
+/** Pull latest subscription state from Stripe into the profile (pricing page sync). */
+export async function refreshSubscriptionFromStripe(
+  subscriptionId: string,
+  userId: string,
+): Promise<void> {
+  const stripe = getStripe();
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  await applySubscriptionToProfile(subscription, userId);
 }
 
 export async function clearSubscriptionForCustomer(

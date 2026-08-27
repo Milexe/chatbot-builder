@@ -71,7 +71,7 @@ Origin matching uses the browser `Origin` header, with `Referer` as fallback. Sp
 ## Billing (shipped — Stripe test)
 
 - **Cadence:** monthly only (no annual)
-- **Cancel:** at period end (`cancel_at_period_end`); paid `plan` until period ends, then webhook → `free`
+- **Cancel:** at period end (`cancel_at_period_end` or flexible-billing `cancel_at`); paid `plan` until period ends, then webhook → `free`
 - **Surfaces:**
   - Landing `#pricing` — marketing only
   - **`/pricing`** — signed-in hub (usage/limits, upgrade, manage billing)
