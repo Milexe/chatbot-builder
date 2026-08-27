@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseChatSseData, type ChatSseEvent } from "@/lib/chat-sse";
 import { chatSurfaceFromPrimary } from "@/lib/bot-defaults";
+import { CHAT_MESSAGE_MAX_CHARS } from "@/lib/limits";
 import { cn } from "@/lib/utils";
 
 type ChatMessageView = {
@@ -312,7 +313,7 @@ export function ChatPanel({
                 name="content"
                 placeholder="Ask a question…"
                 required
-                maxLength={4000}
+                maxLength={CHAT_MESSAGE_MAX_CHARS}
                 disabled={pending}
                 autoComplete="off"
                 className="h-11 flex-1 rounded-xl"

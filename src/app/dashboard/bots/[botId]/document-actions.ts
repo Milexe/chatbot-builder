@@ -66,9 +66,12 @@ async function uploadOneFile({
     });
 
   if (uploadError) {
+    const hint = /payload|size|too large|maximum/i.test(uploadError.message)
+      ? `file may be too large (max ${maxFileMb} MB)`
+      : "try again in a moment";
     return {
       ok: false,
-      message: `${file.name}: upload failed (${uploadError.message}).`,
+      message: `${file.name}: upload failed (${hint}).`,
     };
   }
 
@@ -85,7 +88,10 @@ async function uploadOneFile({
 
   if (insertError) {
     await supabase.storage.from(DOCUMENTS_BUCKET).remove([storagePath]);
-    return { ok: false, message: `${file.name}: ${insertError.message}` };
+    return {
+      ok: false,
+      message: `${file.name}: could not save document. Try again.`,
+    };
   }
 
   await supabase
@@ -215,7 +221,10 @@ export async function uploadDocument(
   };
 }
 
-export async function reindexDocument(botId: string, documentId: string) {
+export async function reindexDocument(
+  botId: string,
+  documentId: string,
+): Promise<DocumentActionState> {
   const { supabase, user } = await requireUser();
 
   const { data: doc } = await supabase
@@ -227,10 +236,10 @@ export async function reindexDocument(botId: string, documentId: string) {
     .maybeSingle();
 
   if (!doc) {
-    return;
+    return { ok: false, message: "Document not found." };
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from("documents")
     .update({
       status: "processing",
@@ -240,13 +249,17 @@ export async function reindexDocument(botId: string, documentId: string) {
     .eq("id", documentId)
     .eq("owner_id", user.id);
 
+  if (updateError) {
+    return { ok: false, message: "Could not start reindex. Try again." };
+  }
+
   const ownerId = user.id;
   const path = `/dashboard/bots/${botId}`;
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     await indexDocument(supabase, documentId, ownerId);
     revalidatePath(path);
-    return;
+    return { ok: true, message: "Reindexing…" };
   }
 
   after(async () => {
@@ -259,9 +272,13 @@ export async function reindexDocument(botId: string, documentId: string) {
   });
 
   revalidatePath(path);
+  return { ok: true, message: "Reindexing…" };
 }
 
-export async function deleteDocument(botId: string, documentId: string) {
+export async function deleteDocument(
+  botId: string,
+  documentId: string,
+): Promise<DocumentActionState> {
   const { supabase, user } = await requireUser();
 
   const { data: doc } = await supabase
@@ -273,18 +290,31 @@ export async function deleteDocument(botId: string, documentId: string) {
     .maybeSingle();
 
   if (!doc) {
-    return;
+    return { ok: false, message: "Document not found." };
   }
 
   if (doc.storage_path) {
-    await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.storage_path]);
+    const { error: storageError } = await supabase.storage
+      .from(DOCUMENTS_BUCKET)
+      .remove([doc.storage_path]);
+    if (storageError) {
+      return {
+        ok: false,
+        message: "Could not delete file from storage. Try again.",
+      };
+    }
   }
 
-  await supabase
+  const { error: deleteError } = await supabase
     .from("documents")
     .delete()
     .eq("id", documentId)
     .eq("owner_id", user.id);
 
+  if (deleteError) {
+    return { ok: false, message: "Could not delete document. Try again." };
+  }
+
   revalidatePath(`/dashboard/bots/${botId}`);
+  return { ok: true, message: "Document deleted." };
 }

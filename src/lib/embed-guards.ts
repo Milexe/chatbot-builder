@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  BOT_ALLOWED_ORIGINS_MAX,
   EMBED_RATE_LIMIT_MAX_REQUESTS,
   EMBED_RATE_LIMIT_WINDOW_MS,
   EMBED_SESSION_MESSAGE_LIMIT,
@@ -192,7 +193,7 @@ export function getRequestIp(request: Request): string {
   return request.headers.get("x-real-ip") || "unknown";
 }
 
-const MAX_ALLOWED_ORIGINS = 20;
+const MAX_ALLOWED_ORIGINS = BOT_ALLOWED_ORIGINS_MAX;
 
 /** Extract browser site origin from Origin, falling back to Referer. */
 export function getRequestOrigin(request: Request): string | null {

@@ -12,6 +12,7 @@ import {
   linkEmbedSessionConversation,
 } from "@/lib/embed-guards";
 import { getPlan, type PlanId } from "@/lib/pricing";
+import { CHAT_MESSAGE_MAX_CHARS } from "@/lib/limits";
 import { createServiceClient } from "@/lib/supabase/admin";
 import {
   assertUnderMessageLimit,
@@ -55,9 +56,11 @@ export async function POST(request: Request, context: RouteContext) {
         { status: 400, headers: cors },
       );
     }
-    if (message.length > 4000) {
+    if (message.length > CHAT_MESSAGE_MAX_CHARS) {
       return NextResponse.json(
-        { error: "Message must be 4000 characters or fewer." },
+        {
+          error: `Message must be ${CHAT_MESSAGE_MAX_CHARS} characters or fewer.`,
+        },
         { status: 400, headers: cors },
       );
     }

@@ -25,6 +25,12 @@ import {
   DEFAULT_SYSTEM_PROMPT,
   DEFAULT_WELCOME_MESSAGE,
 } from "@/lib/bot-defaults";
+import {
+  BOT_ALLOWED_ORIGINS_MAX,
+  BOT_NAME_MAX_CHARS,
+  BOT_SYSTEM_PROMPT_MAX_CHARS,
+  BOT_WELCOME_MAX_CHARS,
+} from "@/lib/limits";
 import type { BotRow } from "@/types/database";
 
 const initialState: BotActionState = { ok: false, message: "" };
@@ -103,7 +109,7 @@ function BotFormFields({
             name="name"
             defaultValue={mode === "edit" ? (bot?.name ?? "") : ""}
             placeholder={DEFAULT_BOT_NAME}
-            maxLength={80}
+            maxLength={BOT_NAME_MAX_CHARS}
             disabled={pending}
           />
         </div>
@@ -114,7 +120,7 @@ function BotFormFields({
             name="welcome_message"
             defaultValue={mode === "edit" ? (bot?.welcome_message ?? "") : ""}
             placeholder={DEFAULT_WELCOME_MESSAGE}
-            maxLength={500}
+            maxLength={BOT_WELCOME_MAX_CHARS}
             rows={2}
             disabled={pending}
           />
@@ -126,7 +132,7 @@ function BotFormFields({
             name="system_prompt"
             defaultValue={mode === "edit" ? (bot?.system_prompt ?? "") : ""}
             placeholder={DEFAULT_SYSTEM_PROMPT}
-            maxLength={4000}
+            maxLength={BOT_SYSTEM_PROMPT_MAX_CHARS}
             rows={4}
             disabled={pending}
           />
@@ -160,6 +166,10 @@ function BotFormFields({
             rows={2}
             disabled={pending}
           />
+          <p className="text-xs text-muted-foreground">
+            One host per line, max {BOT_ALLOWED_ORIGINS_MAX}. Empty or{" "}
+            <span className="font-medium">*</span> allows any site.
+          </p>
         </div>
         {state.message && !state.ok ? (
           <p className="text-sm text-destructive" role="status">

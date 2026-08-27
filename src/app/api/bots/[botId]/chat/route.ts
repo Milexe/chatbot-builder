@@ -1,6 +1,7 @@
 import { streamBotAnswer } from "@/lib/bot-answer";
 import { createChatSseResponse } from "@/lib/chat-sse";
 import { requireProfilePlan } from "@/lib/auth/session";
+import { CHAT_MESSAGE_MAX_CHARS } from "@/lib/limits";
 import { createClient } from "@/lib/supabase/server";
 import {
   assertUnderMessageLimit,
@@ -36,9 +37,11 @@ export async function POST(request: Request, context: RouteContext) {
   if (!content) {
     return Response.json({ error: "Type a message first." }, { status: 400 });
   }
-  if (content.length > 4000) {
+  if (content.length > CHAT_MESSAGE_MAX_CHARS) {
     return Response.json(
-      { error: "Message must be 4000 characters or fewer." },
+      {
+        error: `Message must be ${CHAT_MESSAGE_MAX_CHARS} characters or fewer.`,
+      },
       { status: 400 },
     );
   }

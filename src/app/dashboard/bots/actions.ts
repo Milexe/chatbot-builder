@@ -12,6 +12,11 @@ import {
 } from "@/lib/bot-defaults";
 import { enforceLiveBotCap } from "@/lib/bot-live-cap";
 import { parseAllowedOriginsText } from "@/lib/embed-guards";
+import {
+  BOT_NAME_MAX_CHARS,
+  BOT_SYSTEM_PROMPT_MAX_CHARS,
+  BOT_WELCOME_MAX_CHARS,
+} from "@/lib/limits";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
 export type BotActionState = {
@@ -40,34 +45,34 @@ function parseBotFields(formData: FormData): {
   const allowedOriginsRaw = String(formData.get("allowed_origins") ?? "");
   const parsedOrigins = parseAllowedOriginsText(allowedOriginsRaw);
 
-  if (name.length > 80) {
+  if (name.length > BOT_NAME_MAX_CHARS) {
     return {
       name,
       welcomeMessage,
       primaryColor,
       systemPrompt,
       allowedOrigins: [],
-      error: "Name must be 80 characters or fewer.",
+      error: `Name must be ${BOT_NAME_MAX_CHARS} characters or fewer.`,
     };
   }
-  if (welcomeMessage.length > 500) {
+  if (welcomeMessage.length > BOT_WELCOME_MAX_CHARS) {
     return {
       name,
       welcomeMessage,
       primaryColor,
       systemPrompt,
       allowedOrigins: [],
-      error: "Welcome message must be 500 characters or fewer.",
+      error: `Welcome message must be ${BOT_WELCOME_MAX_CHARS} characters or fewer.`,
     };
   }
-  if (systemPrompt.length > 4000) {
+  if (systemPrompt.length > BOT_SYSTEM_PROMPT_MAX_CHARS) {
     return {
       name,
       welcomeMessage,
       primaryColor,
       systemPrompt,
       allowedOrigins: [],
-      error: "System prompt must be 4000 characters or fewer.",
+      error: `System prompt must be ${BOT_SYSTEM_PROMPT_MAX_CHARS} characters or fewer.`,
     };
   }
   if (!/^#[0-9A-Fa-f]{6}$/.test(primaryColor)) {

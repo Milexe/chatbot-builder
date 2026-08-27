@@ -26,6 +26,7 @@
 
   var SESSION_KEY = "cbb_embed_session_" + botId;
   var HISTORY_KEY = "cbb_embed_history_" + botId;
+  var MAX_MESSAGE_CHARS = 4000;
 
   function uuid() {
     if (window.crypto && window.crypto.randomUUID) {
@@ -225,6 +226,7 @@
     var input = document.createElement("textarea");
     input.rows = 1;
     input.placeholder = "Ask a question…";
+    input.maxLength = MAX_MESSAGE_CHARS;
     input.disabled = state.loading || !state.config;
     if (state.draft) input.value = state.draft;
     var send = document.createElement("button");
@@ -250,6 +252,12 @@
     function submit() {
       var text = (input.value || "").trim();
       if (!text || state.loading) return;
+      if (text.length > MAX_MESSAGE_CHARS) {
+        state.error =
+          "Message must be " + MAX_MESSAGE_CHARS + " characters or fewer.";
+        render();
+        return;
+      }
       state.draft = "";
       sendMessage(text);
     }

@@ -15,6 +15,7 @@ import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { isAllowedDocumentFile } from "@/lib/documents";
 import type { DocumentRow, DocumentStatus } from "@/types/database";
 
 const initialState: DocumentActionState = { ok: false, message: "" };
@@ -65,7 +66,29 @@ export function DocumentsPanel({
   );
   const [clientError, setClientError] = useState("");
   const [isDeleting, startDelete] = useTransition();
+  const [isRetrying, startRetry] = useTransition();
   const [fileNames, setFileNames] = useState<string[]>([]);
+
+  const maxBytes = maxFileMb * 1024 * 1024;
+
+  function validateFiles(files: File[]): string | null {
+    if (files.length === 0) return "Choose at least one file.";
+    if (files.length > remaining) {
+      return `Only ${remaining} more file${remaining === 1 ? "" : "s"} allowed.`;
+    }
+    for (const file of files) {
+      if (file.size === 0) {
+        return `${file.name}: empty file.`;
+      }
+      if (file.size > maxBytes) {
+        return `${file.name}: too large (max ${maxFileMb} MB).`;
+      }
+      if (!isAllowedDocumentFile(file.name, file.type)) {
+        return `${file.name}: only .txt / .md / .pdf supported.`;
+      }
+    }
+    return null;
+  }
 
   const hasBusyDocs = documents.some((doc) => isBusyStatus(doc.status));
 
@@ -117,12 +140,11 @@ export function DocumentsPanel({
             const input = event.currentTarget.elements.namedItem(
               "file",
             ) as HTMLInputElement | null;
-            const count = input?.files?.length ?? 0;
-            if (count > remaining) {
+            const files = Array.from(input?.files ?? []);
+            const error = validateFiles(files);
+            if (error) {
               event.preventDefault();
-              setClientError(
-                `Only ${remaining} more file${remaining === 1 ? "" : "s"} allowed.`,
-              );
+              setClientError(error);
             }
           }}
         >
@@ -150,6 +172,12 @@ export function DocumentsPanel({
                 onChange={(event) => {
                   const files = Array.from(event.target.files ?? []);
                   setFileNames(files.map((file) => file.name));
+                  const error = validateFiles(files);
+                  setClientError(error ?? "");
+                  if (error) {
+                    event.target.value = "";
+                    setFileNames([]);
+                  }
                 }}
               />
             </label>
@@ -207,16 +235,26 @@ export function DocumentsPanel({
               <div className="flex shrink-0 items-center gap-1.5">
                 <Badge variant="secondary">{doc.status}</Badge>
                 {canRetry(doc.status) ? (
-                  <form action={reindexDocument.bind(null, botId, doc.id)}>
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="icon-sm"
-                      aria-label="Retry"
-                    >
-                      <RotateCcwIcon />
-                    </Button>
-                  </form>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Retry"
+                    disabled={isRetrying || isDeleting}
+                    onClick={() => {
+                      setClientError("");
+                      startRetry(async () => {
+                        const result = await reindexDocument(botId, doc.id);
+                        if (!result.ok) {
+                          setClientError(result.message);
+                          return;
+                        }
+                        router.refresh();
+                      });
+                    }}
+                  >
+                    <RotateCcwIcon />
+                  </Button>
                 ) : null}
                 <ConfirmDeleteButton
                   title="Delete document?"
@@ -225,8 +263,13 @@ export function DocumentsPanel({
                   onConfirm={() =>
                     new Promise<void>((resolve) => {
                       startDelete(async () => {
-                        await deleteDocument(botId, doc.id);
-                        router.refresh();
+                        setClientError("");
+                        const result = await deleteDocument(botId, doc.id);
+                        if (!result.ok) {
+                          setClientError(result.message);
+                        } else {
+                          router.refresh();
+                        }
                         resolve();
                       });
                     })
