@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcwIcon, SendIcon } from "lucide-react";
 
@@ -96,28 +96,6 @@ export function ChatPanel({
 
   const activeConversationId = streamConversationId ?? conversationId;
   const atLimit = messagesUsed >= messagesLimit;
-  const localMessagesRef = useRef(localMessages);
-  localMessagesRef.current = localMessages;
-
-  // Adopt server history when idle and it has caught up (after refresh).
-  // While sending, localMessages is the source of truth — like widget state.messages.
-  useEffect(() => {
-    if (pending || streamingAssistant !== null) return;
-    const local = localMessagesRef.current;
-    if (local.length > 0 && messages.length < local.length) return;
-    if (local.length > 0) {
-      const lastUser = [...local].reverse().find((m) => m.role === "user");
-      if (
-        lastUser &&
-        !messages.some(
-          (m) => m.role === "user" && m.content === lastUser.content,
-        )
-      ) {
-        return;
-      }
-    }
-    setLocalMessages(messages);
-  }, [messages, pending, streamingAssistant]);
 
   useLayoutEffect(() => {
     const el = listRef.current;

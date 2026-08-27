@@ -155,6 +155,7 @@ export default async function BotDetailPage({
         </CardHeader>
         <CardContent className="px-4">
           <ChatPanel
+            key={conversationId ?? "new"}
             botId={botId}
             conversationId={conversationId}
             botName={botRow.name}

@@ -21,7 +21,7 @@ function buildRagMessages(
       role: "system",
       content: `${systemPrompt}
 
-Use only the context below to answer. If the answer is not in the context, say you do not know.
+Use only the context below to answer. If the answer is not in the context, say so briefly and warmly — you are not sure from the available docs — and, when helpful, suggest a next step (e.g. rephrase, check related topics in the docs, or contact support). Do not invent facts.
 
 Context:
 ${context}`,

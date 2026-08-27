@@ -78,6 +78,17 @@ export function DocumentsPanel({
     return () => clearInterval(timer);
   }, [hasBusyDocs, router]);
 
+  // useActionState keeps the last server message; drop "Indexing…" once docs settle.
+  const statusText = (() => {
+    if (clientError) return clientError;
+    if (!state.message) return null;
+    if (state.ok && /\bIndexing…$/.test(state.message) && !hasBusyDocs) {
+      return state.message.replace(/\s*Indexing…$/, " Done.");
+    }
+    return state.message;
+  })();
+  const statusIsError = Boolean(clientError) || (Boolean(state.message) && !state.ok);
+
   const fileSummary =
     fileNames.length === 0
       ? "No file selected"
@@ -160,16 +171,16 @@ export function DocumentsPanel({
         </p>
       )}
 
-      {clientError || state.message ? (
+      {statusText ? (
         <p
           className={
-            clientError || !state.ok
+            statusIsError
               ? "text-sm text-destructive"
               : "text-sm text-muted-foreground"
           }
           role="status"
         >
-          {clientError || state.message}
+          {statusText}
         </p>
       ) : null}
 
