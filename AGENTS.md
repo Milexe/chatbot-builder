@@ -12,8 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Chatbot Builder — agent notes
 
-- Product locks + MVP backlog: `docs/product-decisions.md`
+- Product locks + backlog: `docs/product-decisions.md` (MVP feature-complete; post-MVP listed there)
 - Plan gates: `src/lib/pricing.ts`; non-plan caps: `src/lib/limits.ts`
-- Shared RAG answer path: `src/lib/bot-answer.ts` (dashboard + embed)
+- Shared RAG answer path: `src/lib/bot-answer.ts` → `streamBotAnswer` (dashboard + embed)
 - Embed script: `public/widget.js` — local landing demo always uses request host
 - Prefer minimal diffs; match existing patterns; no drive-by refactors

@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
-  createChatCompletion,
   streamChatCompletion,
   type ChatMessage,
 } from "@/lib/openrouter";
@@ -29,24 +28,6 @@ ${context}`,
     },
     { role: "user", content: userMessage },
   ];
-}
-
-/** Shared RAG answer path for in-app chat and the embed widget. */
-export async function answerBotQuestion(
-  supabase: SupabaseClient,
-  bot: { id: string; system_prompt: string },
-  userMessage: string,
-): Promise<BotAnswerResult> {
-  const chunks = await retrieveRelevantChunks(supabase, bot.id, userMessage);
-  const context = buildContextBlock(chunks);
-  const answer = await createChatCompletion(
-    buildRagMessages(bot.system_prompt, context, userMessage),
-  );
-
-  return {
-    answer,
-    citationChunkIds: chunks.map((chunk) => chunk.id),
-  };
 }
 
 /**

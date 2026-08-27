@@ -2,19 +2,29 @@
 
 Turn company documents into a support chatbot: chat in the app, or embed a widget on your website.
 
+## Status (MVP)
+
+**Feature-complete for portfolio demo.** Shipped: auth, bots dashboard, TXT/MD/PDF knowledge + RAG, streaming chat (app + embed), plan limits, Stripe test billing, landing demo widget, Vercel + CI.
+
+Intentionally deferred: citation chips in the chat UI, Free-plan color gating (`customColors`), automated tests, email confirmation / SMTP.
+
+Product locks: [`docs/product-decisions.md`](docs/product-decisions.md). Tunable non-plan numbers: [`src/lib/limits.ts`](src/lib/limits.ts).
+
 ## Features
 
-- Upload knowledge (TXT / Markdown / PDF) and answer from your own docs
-- In-app chat and embeddable website widget (shared RAG path)
-- Plan limits (bots, messages, documents, branding)
-- Stripe billing on `/pricing` (Checkout + Customer Portal, test mode)
+- Upload knowledge (**TXT / Markdown / PDF** text layer) → chunk → embed → answer from your docs
+- Streaming answers in the dashboard preview and the embed widget
+- Plan limits (bots, messages/month, documents, embed branding)
+- Stripe **test** billing on `/pricing` (Checkout + Customer Portal + webhooks)
+- Optional live demo widget on the landing page (`NEXT_PUBLIC_DEMO_BOT_ID`)
 
 ## Stack
 
 - Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - Supabase — Auth, Postgres, Storage, pgvector
 - OpenRouter — chat and embeddings
-- Stripe — Checkout, Customer Portal, webhooks
+- Stripe — Checkout, Customer Portal, webhooks (test mode)
+- Deploy — Vercel; CI — GitHub Actions
 
 ## Setup
 
@@ -24,7 +34,7 @@ npm install
 npm run dev
 ```
 
-Fill in Supabase, OpenRouter, and Stripe keys in `.env` or `.env.local`.
+Fill in Supabase, OpenRouter, and Stripe keys in `.env.local` (see `.env.example`).
 
 ### Database (Supabase CLI)
 
@@ -48,9 +58,9 @@ npm run db:migration:list                    # local files vs remote history
 npm run db:types                             # regenerate src/types/supabase.ts
 ```
 
-Prefer CLI/`db push` (or ask the agent via Supabase MCP) over pasting into the SQL Editor, so git and the cloud stay in sync.
+Prefer CLI/`db push` (or Supabase MCP) over pasting into the SQL Editor so git and the cloud stay in sync.
 
-Docker/`supabase start` is optional for fully local Postgres; remote Free project is enough for MVP.
+Docker/`supabase start` is optional; the remote Free project is enough for MVP.
 
 ### Auth (MVP)
 
@@ -104,14 +114,23 @@ Vercel handles production deploys from `master` once the project is linked.
 |---|---|---|---|
 | Bots | 1 | 3 | 10 |
 | Messages / month | 100 | 2 000 | 10 000 |
-| Documents | 3 × 5 MB | 30 | 100 |
+| Documents | 3 × 5 MB | 30 × 5 MB | 100 × 5 MB |
+| Knowledge formats | TXT, MD, PDF | same | same |
 | Embed branding | included | removable | removable |
 | Embed domain allowlist | yes | yes | yes |
+
+Source of truth: [`src/lib/pricing.ts`](src/lib/pricing.ts).
+
+## Known limitations (honest MVP)
+
+- **PDF:** text layer only — no OCR for scanned/image-only PDFs.
+- **Citations:** chunk IDs are stored on assistant messages; no citation chips in the UI yet.
+- **Colors:** any plan can set bot `primary_color` (paid `customColors` flag exists but is not enforced).
+- **Auth:** email confirmation is off (no custom SMTP on Supabase Free). Re-enable before a real public launch.
+- **Billing:** Stripe **test** mode for the portfolio MVP.
+- Free Supabase projects pause after ~a week of inactivity — wake the project before demos.
 
 ## Notes
 
 - Prefer staying on the Supabase Free plan during development; exceeding quotas restricts the project rather than auto-charging.
 - Product-side upload limits keep database and storage usage predictable.
-- Free Supabase projects pause after about a week of inactivity — restore from the dashboard before demos.
-- **MVP known limitation:** email confirmation is disabled (no custom SMTP on Free). Re-enable with custom SMTP before a real launch.
-- Product locks and embed quota decisions: [`docs/product-decisions.md`](docs/product-decisions.md). Tunable non-plan numbers: [`src/lib/limits.ts`](src/lib/limits.ts).

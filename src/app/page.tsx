@@ -113,7 +113,7 @@ export default async function HomePage() {
               {
                 step: "2",
                 title: "Chat & refine",
-                body: "Test answers in the app against your knowledge base.",
+                body: "Stream answers in the app against your knowledge base.",
               },
               {
                 step: "3",

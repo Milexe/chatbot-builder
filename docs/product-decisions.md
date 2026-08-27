@@ -1,8 +1,10 @@
 # Product decisions (MVP)
 
-Living document for product locks. **Numbers that the app enforces live in code** — prefer editing [`src/lib/limits.ts`](../src/lib/limits.ts) and [`src/lib/pricing.ts`](../src/lib/pricing.ts), then update this file to match.
+Living document for product locks. **Numbers the app enforces live in code** — prefer editing [`src/lib/limits.ts`](../src/lib/limits.ts) and [`src/lib/pricing.ts`](../src/lib/pricing.ts), then update this file to match.
 
 Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly).
+
+**MVP status:** feature-complete for portfolio demo. See README Status section.
 
 ---
 
@@ -32,8 +34,8 @@ Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly
 
 - RAG via `match_document_chunks` + OpenRouter chat model
 - **Streaming** responses (app + embed) via shared OpenRouter SSE path
-- Owner monthly message quota from plan (`profiles.messages_used_this_month`)
-- Citation chunk ids stored on assistant messages; UI citations later
+- Owner monthly message quota from plan (`profiles.messages_used_this_month`) — account-wide; clearing chats / deleting bots does not refund the counter
+- Citation chunk ids stored on assistant messages; **UI citations not shipped**
 
 ## Embed widget (shipped MVP)
 
@@ -82,26 +84,23 @@ Origin matching uses the browser `Origin` header, with `Referer` as fallback. Sp
 
 ---
 
-## MVP finish backlog
+## Post-MVP / nice-to-have
 
-| # | Item | Why it belongs |
-| --- | --- | --- |
-| 1 | **README truth-up** | Keep claims aligned with code as features ship |
-| 2 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist (optional; not claimed in pricing copy) |
-
-### Acceptance sketches
-
-- **Billing (Stripe):** `/pricing` Upgrade opens Checkout (or prorates existing sub); Portal schedules cancel-at-period-end; webhook keeps `profiles.plan` in sync; deleted sub → Free.
-- **README:** Features list matches code; no “citations in UI” until shipped.
-- **Custom colors:** Server rejects non-default `primary_color` on Free; UI disables or hides picker.
-- **PDF (shipped):** `.pdf` accepted, text layer extracted (`unpdf`), same indexing pipeline as TXT/MD; image-only/scanned PDFs fail with a clear error (no OCR).
-- **Streaming (shipped):** Tokens appear in widget and app chat; quotas still applied; assistant row saved after stream completes.
+| Item | Notes |
+| --- | --- |
+| Enforce `customColors` | Free → default color only; Pro+ → picker (optional; not claimed in pricing copy) |
+| Citation chips in chat UI | IDs already stored on assistant messages |
+| Wildcard / subdomain origin patterns | Beyond exact origin match |
+| Unit / E2E tests | CI today: lint + typecheck + build |
+| Email confirmation + SMTP | Before a real public launch |
+| PDF OCR | Scanned / image-only PDFs |
 
 ---
 
-## Later (post-MVP / nice-to-have)
+## Demo checklist (portfolio)
 
-- Wildcard / subdomain origin patterns
-- Citation chips in chat UI
-- Unit / E2E tests
-- Re-enable email confirmation + SMTP before a real public launch
+1. Push `master` and confirm Vercel deploy is green.
+2. Set `NEXT_PUBLIC_DEMO_BOT_ID` on Vercel and redeploy.
+3. Demo bot is **Live**, origins allow the Vercel host or `*`.
+4. Record / present while **signed out** on the landing (demo widget hides for logged-in users).
+5. Stripe **Test** mode for billing walkthrough; do not claim live payments.

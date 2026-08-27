@@ -67,39 +67,6 @@ export type ChatMessage = {
   content: string;
 };
 
-/** Non-streaming chat completion via OpenRouter. */
-export async function createChatCompletion(
-  messages: ChatMessage[],
-): Promise<string> {
-  const response = await fetch(OPENROUTER_CHAT_URL, {
-    method: "POST",
-    headers: openRouterHeaders(),
-    body: JSON.stringify({
-      model: getChatModel(),
-      messages,
-      temperature: 0.2,
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(
-      `OpenRouter chat failed (${response.status}): ${body.slice(0, 400)}`,
-    );
-  }
-
-  const json = (await response.json()) as {
-    choices?: { message?: { content?: string | null } }[];
-  };
-
-  const content = json.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error("OpenRouter returned an empty chat response.");
-  }
-
-  return content;
-}
-
 /**
  * Stream chat completion tokens from OpenRouter (SSE).
  * Yields text deltas; throws if the request fails or the stream is empty.
