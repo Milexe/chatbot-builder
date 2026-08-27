@@ -29,15 +29,14 @@ export const PLANS: Plan[] = [
     description: "Try the product with one bot and a light message cap.",
     features: [
       "1 chatbot",
-      "50 messages / month",
+      "100 messages / month",
       "Up to 3 documents (5 MB each)",
-      "In-app chat",
-      "Embed widget with Chatbot Builder branding",
-      "Embed domain allowlist",
+      "In-app chat + embed widget",
+      "Chatbot Builder branding on embed",
     ],
     limits: {
       bots: 1,
-      messagesPerMonth: 50,
+      messagesPerMonth: 100,
       documents: 3,
       maxFileMb: 5,
       removeBranding: false,
@@ -54,10 +53,8 @@ export const PLANS: Plan[] = [
     features: [
       "3 chatbots",
       "2,000 messages / month",
-      "Up to 30 documents",
-      "Remove branding",
-      "Custom widget colors",
-      "Answer citations from your docs",
+      "Up to 30 documents (5 MB each)",
+      "No Chatbot Builder branding on embed",
     ],
     limits: {
       bots: 3,
@@ -79,9 +76,8 @@ export const PLANS: Plan[] = [
     features: [
       "10 chatbots",
       "10,000 messages / month",
-      "Up to 100 documents",
-      "Everything in Pro",
-      "Priority-friendly quotas",
+      "Up to 100 documents (5 MB each)",
+      "No Chatbot Builder branding on embed",
     ],
     limits: {
       bots: 10,

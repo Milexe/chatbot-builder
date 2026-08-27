@@ -166,8 +166,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
             <li>
               Max file size: {plan.limits.maxFileMb} MB · Branding{" "}
-              {plan.limits.removeBranding ? "removable" : "required on embed"} ·
-              Custom colors {plan.limits.customColors ? "yes" : "default only"}
+              {plan.limits.removeBranding ? "removable" : "required on embed"}
             </li>
             <li>
               Card details and invoices live in the Stripe Customer Portal —
@@ -187,12 +186,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {PLANS.map((item) => {
               const isCurrent = item.id === currentId;
+              const isUpgrade = PLAN_RANK[item.id] > PLAN_RANK[currentId];
               return (
                 <div
                   key={item.id}
                   className={cn(
                     "flex flex-col rounded-2xl border bg-card p-5",
-                    item.highlighted
+                    isUpgrade
                       ? "border-primary ring-2 ring-primary/30"
                       : "border-border/80",
                   )}
@@ -263,7 +263,9 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                       <UpgradeButton
                         planId={item.id}
                         label={planActionLabel(item, currentId)}
-                        variant={item.highlighted ? "default" : "outline"}
+                        variant={isUpgrade ? "default" : "outline"}
+                        confirmProration={isUpgrade && isPaid}
+                        planName={item.name}
                       />
                     )}
                   </div>

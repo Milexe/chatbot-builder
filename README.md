@@ -103,7 +103,7 @@ Vercel handles production deploys from `master` once the project is linked.
 | | Free | Pro | Business |
 |---|---|---|---|
 | Bots | 1 | 3 | 10 |
-| Messages / month | 50 | 2 000 | 10 000 |
+| Messages / month | 100 | 2 000 | 10 000 |
 | Documents | 3 × 5 MB | 30 | 100 |
 | Embed branding | included | removable | removable |
 | Embed domain allowlist | yes | yes | yes |

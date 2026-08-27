@@ -46,7 +46,7 @@ Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly
 | Rate limit | Per IP + bot — `EMBED_RATE_LIMIT_*` (10 / 60s) |
 | Allowed origins | Enforced when `bots.allowed_origins` is non-empty; empty or `*` = any site. Match uses `Origin`, else `Referer` (same-origin GET often omits Origin). One origin covers all paths on that host. |
 | Branding | Shown unless plan has `removeBranding` |
-| Custom colors | Plan flag `customColors` exists; **not enforced yet** (Free can still set `primary_color`) |
+| Custom colors | Flag `customColors` exists in `pricing.ts`; **not enforced** (any plan can set `primary_color`). Do not claim as a paid feature until gated. |
 
 API:
 
