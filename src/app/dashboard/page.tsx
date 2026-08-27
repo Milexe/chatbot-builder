@@ -1,5 +1,4 @@
 import { BotsGrid, type BotCardStats } from "@/app/dashboard/bots/bots-grid";
-import { enforceLiveBotCap } from "@/lib/bot-live-cap";
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
 import { ensureMessagePeriod, startOfUtcMonthIso } from "@/lib/usage";
 import type { BotRow } from "@/types/database";
@@ -8,8 +7,6 @@ export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
   const { plan, profile } = await requireProfilePlan(supabase, user.id);
   const usageProfile = await ensureMessagePeriod(supabase, profile);
-
-  await enforceLiveBotCap(supabase, user.id, plan.limits.bots);
 
   const { data: bots, error } = await supabase
     .from("bots")

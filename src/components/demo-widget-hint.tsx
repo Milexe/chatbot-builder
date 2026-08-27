@@ -60,7 +60,7 @@ export function DemoWidgetHint() {
 
   return (
     <div
-      className="pointer-events-none fixed bottom-[4.25rem] right-[4.25rem] z-[2147482990] sm:bottom-[4.5rem] sm:right-[4.5rem]"
+      className="pointer-events-none fixed bottom-[3.55rem] right-[3.55rem] z-[2147482990] sm:bottom-[3.75rem] sm:right-[3.75rem]"
       aria-hidden
     >
       <div className="origin-bottom-right -rotate-[16deg] rounded-xl bg-background/45 px-3 py-2 backdrop-blur-md supports-backdrop-filter:bg-background/35">

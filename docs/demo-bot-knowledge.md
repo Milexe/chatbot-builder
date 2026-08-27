@@ -1,6 +1,20 @@
 # Chatbot Builder — product knowledge base
 
-This document describes **Chatbot Builder**: a web app that turns company documents into a support chatbot. Use it as the knowledge source for the live demo bot on the marketing landing page.
+This document is the knowledge source for the live demo bot on the Chatbot Builder landing page.
+
+## Quick answers
+
+**What are the plans / pricing / subscription tiers in the app?**  
+Free ($0): 1 chatbot, 100 messages/month, 3 documents (5 MB each), embed with Chatbot Builder branding.  
+Pro ($29/month): 3 chatbots, 2,000 messages/month, 30 documents, no embed branding.  
+Business ($79/month): 10 chatbots, 10,000 messages/month, 100 documents, no embed branding.  
+Billing is monthly. Upgrade on `/pricing` via Stripe Checkout; manage cards and cancel at period end in the Stripe Customer Portal.
+
+**What file types can I upload?** TXT, Markdown, and PDF (text layer only, max 5 MB). Scanned/image-only PDFs are not supported (no OCR).
+
+**How do I embed the bot?** Copy the script from the bot Embed card (`widget.js` + `data-bot-id`). The bot must be Live.
+
+**Does chat stream?** Yes — in the dashboard preview and in the website widget.
 
 If a visitor asks something that is not covered here, stay friendly: admit you do not have that in the product docs, offer a short helpful nudge (try another question about features, pricing, embed, or PDFs — or sign up to explore the dashboard), and never invent product claims.
 

@@ -10,6 +10,7 @@ import {
   DEFAULT_SYSTEM_PROMPT,
   DEFAULT_WELCOME_MESSAGE,
 } from "@/lib/bot-defaults";
+import { enforceLiveBotCap } from "@/lib/bot-live-cap";
 import { parseAllowedOriginsText } from "@/lib/embed-guards";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
@@ -147,6 +148,9 @@ export async function createBot(
   if (error) {
     return { ok: false, message: error.message };
   }
+
+  // New bots default to live; trim excess after plan downgrades / race cases.
+  await enforceLiveBotCap(supabase, user.id, plan.limits.bots);
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/bots/${data.id}`);

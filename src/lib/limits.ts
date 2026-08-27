@@ -17,4 +17,4 @@ export const EMBED_RATE_LIMIT_MAX_REQUESTS = 10;
 export const RAG_MATCH_COUNT = 6;
 
 /** Minimum cosine similarity for retrieved chunks. */
-export const RAG_MATCH_THRESHOLD = 0.5;
+export const RAG_MATCH_THRESHOLD = 0.35;

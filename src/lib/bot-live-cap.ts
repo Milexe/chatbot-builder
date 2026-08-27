@@ -4,6 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * Keep at most `maxLive` bots public (embed Live).
  * Oldest live bots stay up; newer excess bots are paused.
  * Returns how many bots were paused.
+ *
+ * Call from mutations / billing — not on every page load.
  */
 export async function enforceLiveBotCap(
   supabase: SupabaseClient,

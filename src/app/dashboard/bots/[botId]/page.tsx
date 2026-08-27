@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { enforceLiveBotCap } from "@/lib/bot-live-cap";
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
 import { ensureMessagePeriod } from "@/lib/usage";
 import { cn } from "@/lib/utils";
@@ -49,7 +48,6 @@ export default async function BotDetailPage({
   const { supabase, user } = await requireUser();
   const { plan, profile } = await requireProfilePlan(supabase, user.id);
   const usageProfile = await ensureMessagePeriod(supabase, profile);
-  await enforceLiveBotCap(supabase, user.id, plan.limits.bots);
 
   const [botResult, documentsResult, accountDocCountResult, conversationResult] =
     await Promise.all([

@@ -100,16 +100,16 @@ export function HeroChatPreview() {
             <MessageStack aria-hidden />
           </div>
         </div>
-        <div className="shrink-0 border-t border-border/70 bg-card px-3 py-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-11 flex-1 items-center rounded-xl border border-border/80 bg-background px-3 text-xs text-muted-foreground">
+        <div
+          aria-hidden
+          className="pointer-events-none shrink-0 border-t border-border/70 bg-card px-3 py-3"
+        >
+          <div className="flex items-center gap-2 opacity-55">
+            <div className="flex h-11 flex-1 items-center rounded-xl border border-border/60 bg-background px-3 text-xs text-muted-foreground/45">
               Ask about hours, pricing, documents…
             </div>
-            <div
-              aria-hidden
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
-            >
-              <SendIcon className="size-5" />
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/55 text-primary-foreground">
+              <SendIcon className="size-5 opacity-80" />
             </div>
           </div>
         </div>

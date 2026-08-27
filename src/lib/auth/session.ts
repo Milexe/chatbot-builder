@@ -1,10 +1,12 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { getPlan, type Plan, type PlanId } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 import type { ProfileRow } from "@/types/database";
 
-export async function requireUser() {
+/** One Auth round-trip per request (layout + page share this). */
+export const requireUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,7 +17,7 @@ export async function requireUser() {
   }
 
   return { supabase, user };
-}
+});
 
 async function getProfile(
   supabase: Awaited<ReturnType<typeof createClient>>,
