@@ -1,4 +1,5 @@
 import { BotsGrid, type BotCardStats } from "@/app/dashboard/bots/bots-grid";
+import { enforceLiveBotCap } from "@/lib/bot-live-cap";
 import { requireProfilePlan, requireUser } from "@/lib/auth/session";
 import { ensureMessagePeriod } from "@/lib/usage";
 import type { BotRow } from "@/types/database";
@@ -7,6 +8,8 @@ export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
   const { plan, profile } = await requireProfilePlan(supabase, user.id);
   const usageProfile = await ensureMessagePeriod(supabase, profile);
+
+  await enforceLiveBotCap(supabase, user.id, plan.limits.bots);
 
   const { data: bots, error } = await supabase
     .from("bots")
@@ -38,11 +41,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-1">
         <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
           Bots
         </h1>
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
           <span>{plan.name}</span>
           <span
             className="size-1 shrink-0 rounded-full bg-muted-foreground/45"

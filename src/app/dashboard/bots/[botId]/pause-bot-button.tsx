@@ -31,15 +31,23 @@ export function PauseBotButton({
   isLive: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function runPause(paused: boolean) {
     startTransition(() => {
       void preserveScroll(async () => {
-        await setBotPaused(botId, paused);
+        const result = await setBotPaused(botId, paused);
+        if (!result.ok) {
+          if (!paused) {
+            setResumeError(result.message ?? "Could not resume bot.");
+          }
+          return;
+        }
+        setPauseOpen(false);
+        setResumeError(null);
         router.refresh();
-        setOpen(false);
       });
     });
   }
@@ -50,9 +58,10 @@ export function PauseBotButton({
         type="button"
         variant="outline"
         size="icon-sm"
+        disabled={pending}
         onClick={() => {
           if (isLive) {
-            setOpen(true);
+            setPauseOpen(true);
             return;
           }
           runPause(false);
@@ -62,7 +71,7 @@ export function PauseBotButton({
         <span className="sr-only">{isLive ? "Pause" : "Resume"}</span>
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={pauseOpen} onOpenChange={setPauseOpen}>
         <DialogContent className="sm:max-w-sm" showCloseButton>
           <DialogHeader>
             <DialogTitle>Pause this bot?</DialogTitle>
@@ -76,7 +85,7 @@ export function PauseBotButton({
               type="button"
               variant="outline"
               disabled={pending}
-              onClick={() => setOpen(false)}
+              onClick={() => setPauseOpen(false)}
             >
               Cancel
             </Button>
@@ -86,6 +95,29 @@ export function PauseBotButton({
               onClick={() => runPause(true)}
             >
               {pending ? "Pausing…" : "Pause bot"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={resumeError !== null}
+        onOpenChange={(open) => {
+          if (!open) setResumeError(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm" showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Cannot resume</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{resumeError}</p>
+          <DialogFooter className="mx-0 mb-0 rounded-none border-0 bg-transparent p-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setResumeError(null)}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

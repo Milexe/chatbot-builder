@@ -192,7 +192,11 @@ export default async function HomePage() {
                     ))}
                   </ul>
                   <Link
-                    href="/login"
+                    href={
+                      plan.id === "free"
+                        ? "/login"
+                        : `/login?next=${encodeURIComponent("/pricing")}`
+                    }
                     className={cn(
                       buttonVariants({
                         variant: plan.highlighted ? "default" : "outline",

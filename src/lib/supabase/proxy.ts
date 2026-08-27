@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
+import { safeNextPath } from "@/lib/safe-next";
 
 function copyCookies(from: NextResponse, to: NextResponse) {
   from.cookies.getAll().forEach((cookie) => {
@@ -39,9 +40,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isDashboard = path === "/dashboard" || path.startsWith("/dashboard/");
+  const isProtected =
+    path === "/dashboard" ||
+    path.startsWith("/dashboard/") ||
+    path === "/pricing" ||
+    path.startsWith("/pricing/");
 
-  if (!user && isDashboard) {
+  if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", path);
@@ -52,7 +57,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && path === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = safeNextPath(request.nextUrl.searchParams.get("next"));
     url.search = "";
     const redirectResponse = NextResponse.redirect(url);
     copyCookies(supabaseResponse, redirectResponse);

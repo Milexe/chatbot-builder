@@ -16,14 +16,19 @@ const initialState: AuthActionState = { ok: false, message: "" };
 
 type Mode = "signin" | "signup";
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string }) {
   const [mode, setMode] = useState<Mode>("signin");
   const [googleError, setGoogleError] = useState("");
   const [googlePending, startGoogle] = useTransition();
+  const next =
+    nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+      ? nextPath
+      : "/dashboard";
 
   function handleGoogleSignIn() {
     setGoogleError("");
     startGoogle(async () => {
+      document.cookie = `cbb_auth_next=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax`;
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -63,7 +68,7 @@ export function LoginForm() {
         <Separator className="flex-1" />
       </div>
 
-      <EmailPasswordForm key={mode} mode={mode} />
+      <EmailPasswordForm key={mode} mode={mode} nextPath={next} />
 
       <p className="text-center text-sm text-muted-foreground">
         {mode === "signin" ? (
@@ -94,7 +99,13 @@ export function LoginForm() {
   );
 }
 
-function EmailPasswordForm({ mode }: { mode: Mode }) {
+function EmailPasswordForm({
+  mode,
+  nextPath,
+}: {
+  mode: Mode;
+  nextPath: string;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -120,6 +131,7 @@ function EmailPasswordForm({ mode }: { mode: Mode }) {
       }}
     >
       <input type="hidden" name="intent" value={mode} />
+      <input type="hidden" name="next" value={nextPath} />
       <div className="grid gap-2">
         <Label htmlFor="email">Email</Label>
         <Input

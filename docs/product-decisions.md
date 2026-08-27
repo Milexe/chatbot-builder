@@ -2,7 +2,7 @@
 
 Living document for product locks. **Numbers that the app enforces live in code** — prefer editing [`src/lib/limits.ts`](../src/lib/limits.ts) and [`src/lib/pricing.ts`](../src/lib/pricing.ts), then update this file to match.
 
-Pricing table amounts are still placeholders until Stripe.
+Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly).
 
 ---
 
@@ -11,7 +11,7 @@ Pricing table amounts are still placeholders until Stripe.
 - Next.js App Router + TypeScript + Tailwind + shadcn/ui
 - Supabase Free: Auth, Postgres, Storage, pgvector
 - OpenRouter: chat + embeddings
-- Stripe test / mock billing: **MVP finish backlog** (see below)
+- Billing: **Stripe test** — Checkout + Customer Portal + webhooks (`/pricing` hub)
 - Deploy: Vercel (+ GitHub Actions CI)
 
 ## Auth (locked)
@@ -65,21 +65,34 @@ Origin matching uses the browser `Origin` header, with `Referer` as fallback. Sp
 
 ---
 
-## MVP finish backlog
+## Billing (shipped — Stripe test)
 
-Ordered for closing the assignment / launch feel. These are **reasonable end-of-MVP items** — not a second product.
+- **Cadence:** monthly only (no annual)
+- **Cancel:** at period end (`cancel_at_period_end`); paid `plan` until period ends, then webhook → `free`
+- **Surfaces:**
+  - Landing `#pricing` — marketing only
+  - **`/pricing`** — signed-in hub (usage/limits, upgrade, manage billing)
+- **Stripe:**
+  - **Checkout** — Free → Pro/Business (creates Customer + Subscription)
+  - **Subscription update** — Pro → Business (proration) when a sub already exists
+  - **Customer Portal** — cards, cancel-at-period-end, invoices; downgrades
+  - **Webhooks** — source of truth for `profiles.plan` / subscription fields (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`)
+- Env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`
+
+---
+
+## MVP finish backlog
 
 | # | Item | Why it belongs |
 | --- | --- | --- |
-| 1 | **Stripe (test) or mock billing** | Explicit TZ requirement; plans/gates exist, upgrade path does not |
-| 2 | **README truth-up** | Drop/claim only what ships (no PDF/citations until real); keep setup accurate |
-| 3 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist; matches pricing copy |
-| 4 | **Chat streaming** | Embed + in-app via shared OpenRouter stream; better demo feel, not a TZ hard requirement |
-| 5 | **PDF upload + extract** | README/marketing promise; TXT/MD already prove RAG — PDF is the useful next format |
+| 1 | **README truth-up** | Drop/claim only what ships (no PDF/citations until real) |
+| 2 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist; matches pricing copy |
+| 3 | **Chat streaming** | Embed + in-app via shared OpenRouter stream; better demo feel |
+| 4 | **PDF upload + extract** | Marketing promise; TXT/MD already prove RAG |
 
 ### Acceptance sketches
 
-- **Billing:** From pricing/dashboard, user can move Free → Pro/Business (Stripe Checkout test **or** mock that updates `profiles.plan`). Gated limits follow the new plan.
+- **Billing (Stripe):** `/pricing` Upgrade opens Checkout (or prorates existing sub); Portal schedules cancel-at-period-end; webhook keeps `profiles.plan` in sync; deleted sub → Free.
 - **README:** Features list matches code; no “PDF” / “citations in UI” until shipped.
 - **Custom colors:** Server rejects non-default `primary_color` on Free; UI disables or hides picker.
 - **Streaming:** Tokens appear in widget (and app chat) without waiting for full JSON; quotas still applied; assistant row saved after stream completes.

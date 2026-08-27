@@ -4,7 +4,7 @@ import { LoginForm } from "@/app/login/login-form";
 import { SiteHeader } from "@/components/site-header";
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 {params.error}
               </p>
             ) : null}
-            <LoginForm />
+            <LoginForm nextPath={params.next} />
             <Link
               href="/"
               className="self-center text-sm text-muted-foreground transition-colors hover:text-foreground"

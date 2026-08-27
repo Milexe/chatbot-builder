@@ -247,7 +247,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -255,10 +257,14 @@ export type Database = {
           messages_used_this_month: number
           plan: string
           stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
           updated_at: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -266,10 +272,14 @@ export type Database = {
           messages_used_this_month?: number
           plan?: string
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -277,6 +287,8 @@ export type Database = {
           messages_used_this_month?: number
           plan?: string
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Relationships: []

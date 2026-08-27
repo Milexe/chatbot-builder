@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { RotateCcwIcon, Trash2Icon } from "lucide-react";
@@ -139,7 +140,12 @@ export function DocumentsPanel({
           </Button>
         </form>
       ) : (
-        <p className="text-sm text-muted-foreground">Document limit reached.</p>
+        <p className="text-sm text-muted-foreground">
+          Document limit reached ({documentsUsed}/{documentsLimit}).{" "}
+          <Link href="/pricing" className="font-medium text-foreground underline">
+            View plans
+          </Link>
+        </p>
       )}
 
       {clientError || state.message ? (

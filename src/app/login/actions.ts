@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/safe-next";
 
 export type AuthActionState = {
   ok: boolean;
@@ -40,6 +41,7 @@ export async function submitEmailAuth(
   formData: FormData,
 ): Promise<AuthActionState> {
   const intent = String(formData.get("intent") ?? "signin");
+  const next = safeNextPath(formData.get("next"));
   const parsed = parseCredentials(formData);
   if (parsed.error) {
     return { ok: false, message: parsed.error };
@@ -62,7 +64,7 @@ export async function submitEmailAuth(
       return { ok: false, message: error.message };
     }
     if (data.session) {
-      redirect("/dashboard");
+      redirect(next);
     }
 
     return {
@@ -81,7 +83,7 @@ export async function submitEmailAuth(
     return { ok: false, message: error.message };
   }
 
-  redirect("/dashboard");
+  redirect(next);
 }
 
 export async function signOut() {

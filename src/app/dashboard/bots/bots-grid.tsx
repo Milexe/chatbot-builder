@@ -92,11 +92,19 @@ export function BotsGrid({
       })}
 
       {atBotLimit ? (
-        <div className="flex min-h-[9.5rem] flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-muted/30 p-4 text-center">
-          <p className="font-heading text-sm font-semibold">Limit reached</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {planName} plan is full
-          </p>
+        <div className="flex min-h-[9.5rem] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/80 bg-muted/30 p-4 text-center">
+          <div>
+            <p className="font-heading text-sm font-semibold">Limit reached</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {planName} plan is full
+            </p>
+          </div>
+          <Link
+            href="/pricing"
+            className={cn(buttonVariants({ size: "sm" }), "w-full max-w-[12rem]")}
+          >
+            View plans
+          </Link>
         </div>
       ) : (
         <BotFormDialog

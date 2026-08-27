@@ -208,8 +208,43 @@ export async function updateBot(
   return { ok: true, message: "Saved." };
 }
 
-export async function setBotPaused(botId: string, paused: boolean) {
+export async function setBotPaused(
+  botId: string,
+  paused: boolean,
+): Promise<{ ok: boolean; message?: string }> {
   const { supabase, user } = await requireUser();
+  const { plan } = await requireProfilePlan(supabase, user.id);
+
+  const { data: bot } = await supabase
+    .from("bots")
+    .select("id, is_public")
+    .eq("id", botId)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (!bot) {
+    return { ok: false, message: "Bot not found." };
+  }
+
+  // Resume: only allow up to plan.limits.bots live at once.
+  if (!paused) {
+    const { count, error: countError } = await supabase
+      .from("bots")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .eq("is_public", true)
+      .neq("id", botId);
+
+    if (countError) {
+      return { ok: false, message: countError.message };
+    }
+    if ((count ?? 0) >= plan.limits.bots) {
+      return {
+        ok: false,
+        message: `Your ${plan.name} plan allows ${plan.limits.bots} live bot${plan.limits.bots === 1 ? "" : "s"}. Pause another bot first.`,
+      };
+    }
+  }
 
   const { error } = await supabase
     .from("bots")
@@ -221,13 +256,12 @@ export async function setBotPaused(botId: string, paused: boolean) {
     .eq("owner_id", user.id);
 
   if (error) {
-    redirect(
-      `/dashboard/bots/${botId}?error=${encodeURIComponent(error.message)}`,
-    );
+    return { ok: false, message: error.message };
   }
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/bots/${botId}`);
+  return { ok: true };
 }
 
 export async function deleteBot(botId: string) {

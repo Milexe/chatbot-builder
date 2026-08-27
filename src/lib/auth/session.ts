@@ -24,7 +24,7 @@ async function getProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, email, full_name, plan, messages_used_this_month, messages_period_start",
+      "id, email, full_name, plan, messages_used_this_month, messages_period_start, stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end, current_period_end",
     )
     .eq("id", userId)
     .maybeSingle();
