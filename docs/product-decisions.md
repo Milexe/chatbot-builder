@@ -30,7 +30,7 @@ Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly
 ## In-app chat (shipped)
 
 - RAG via `match_document_chunks` + OpenRouter chat model
-- Non-streaming responses for now (**streaming** → MVP finish backlog, app + widget together)
+- **Streaming** responses (app + embed) via shared OpenRouter SSE path
 - Owner monthly message quota from plan (`profiles.messages_used_this_month`)
 - Citation chunk ids stored on assistant messages; UI citations later
 
@@ -40,7 +40,7 @@ Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly
 | --- | --- |
 | Integration | Script tag: `<script src="…/widget.js" data-bot-id="…">` |
 | Shared logic | [`src/lib/bot-answer.ts`](../src/lib/bot-answer.ts) for dashboard + embed |
-| Streaming | No yet (same backlog item as in-app) |
+| Streaming | Yes — shared OpenRouter stream for dashboard + embed |
 | Owner quota | Same monthly plan pool as in-app chat |
 | Visitor quota | **Per browser session** — `EMBED_SESSION_MESSAGE_LIMIT` (15) |
 | Rate limit | Per IP + bot — `EMBED_RATE_LIMIT_*` (10 / 60s) |
@@ -86,17 +86,16 @@ Origin matching uses the browser `Origin` header, with `Referer` as fallback. Sp
 | # | Item | Why it belongs |
 | --- | --- | --- |
 | 1 | **README truth-up** | Drop/claim only what ships (no PDF/citations until real) |
-| 2 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist; matches pricing copy |
-| 3 | **Chat streaming** | Embed + in-app via shared OpenRouter stream; better demo feel |
-| 4 | **PDF upload + extract** | Marketing promise; TXT/MD already prove RAG |
+| 2 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist (optional; not claimed in pricing copy) |
+| 3 | **PDF upload + extract** | Marketing promise; TXT/MD already prove RAG |
 
 ### Acceptance sketches
 
 - **Billing (Stripe):** `/pricing` Upgrade opens Checkout (or prorates existing sub); Portal schedules cancel-at-period-end; webhook keeps `profiles.plan` in sync; deleted sub → Free.
 - **README:** Features list matches code; no “PDF” / “citations in UI” until shipped.
 - **Custom colors:** Server rejects non-default `primary_color` on Free; UI disables or hides picker.
-- **Streaming:** Tokens appear in widget (and app chat) without waiting for full JSON; quotas still applied; assistant row saved after stream completes.
 - **PDF:** `.pdf` accepted, text extracted, same indexing pipeline as TXT/MD.
+- **Streaming (shipped):** Tokens appear in widget and app chat; quotas still applied; assistant row saved after stream completes.
 
 ---
 

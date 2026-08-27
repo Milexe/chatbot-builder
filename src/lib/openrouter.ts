@@ -99,3 +99,73 @@ export async function createChatCompletion(
 
   return content;
 }
+
+/**
+ * Stream chat completion tokens from OpenRouter (SSE).
+ * Yields text deltas; throws if the request fails or the stream is empty.
+ */
+export async function* streamChatCompletion(
+  messages: ChatMessage[],
+): AsyncGenerator<string> {
+  const response = await fetch(OPENROUTER_CHAT_URL, {
+    method: "POST",
+    headers: openRouterHeaders(),
+    body: JSON.stringify({
+      model: getChatModel(),
+      messages,
+      temperature: 0.2,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `OpenRouter chat failed (${response.status}): ${body.slice(0, 400)}`,
+    );
+  }
+
+  if (!response.body) {
+    throw new Error("OpenRouter returned an empty stream body.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let yielded = false;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+
+      let parsed: {
+        choices?: { delta?: { content?: string | null } }[];
+      };
+      try {
+        parsed = JSON.parse(payload) as typeof parsed;
+      } catch {
+        continue;
+      }
+
+      const delta = parsed.choices?.[0]?.delta?.content;
+      if (delta) {
+        yielded = true;
+        yield delta;
+      }
+    }
+  }
+
+  if (!yielded) {
+    throw new Error("OpenRouter returned an empty chat stream.");
+  }
+}

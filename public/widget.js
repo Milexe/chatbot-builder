@@ -70,6 +70,7 @@
   var state = {
     open: false,
     loading: false,
+    streaming: null,
     config: null,
     messages: loadHistory(),
     error: "",
@@ -194,7 +195,12 @@
       messages.appendChild(bubble);
     });
 
-    if (state.loading) {
+    if (state.streaming !== null) {
+      var streamingBubble = document.createElement("div");
+      streamingBubble.className = "bubble bot";
+      streamingBubble.textContent = state.streaming || "…";
+      messages.appendChild(streamingBubble);
+    } else if (state.loading) {
       var thinking = document.createElement("div");
       thinking.className = "bubble system";
       thinking.textContent = "Thinking…";
@@ -314,6 +320,7 @@
 
   function sendMessage(text) {
     state.loading = true;
+    state.streaming = "";
     state.error = "";
     state.messages.push({ role: "user", content: text });
     saveHistory(state.messages);
@@ -328,14 +335,70 @@
       }),
     })
       .then(function (res) {
-        return res.json().then(function (data) {
-          if (!res.ok) throw new Error(data.error || "Request failed");
-          return data;
+        if (!res.ok) {
+          return res.json().then(function (data) {
+            throw new Error((data && data.error) || "Request failed");
+          });
+        }
+        if (!res.body || !res.body.getReader) {
+          throw new Error("Streaming is not supported in this browser.");
+        }
+
+        var reader = res.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = "";
+        var finalAnswer = "";
+        var streamError = null;
+
+        function handleEvent(event) {
+          if (!event || !event.type) return;
+          if (event.type === "delta" && typeof event.text === "string") {
+            state.streaming = (state.streaming || "") + event.text;
+            render();
+            return;
+          }
+          if (event.type === "done" && typeof event.answer === "string") {
+            finalAnswer = event.answer;
+            state.streaming = event.answer;
+            render();
+            return;
+          }
+          if (event.type === "error") {
+            streamError = event.message || "Request failed";
+          }
+        }
+
+        function pump() {
+          return reader.read().then(function (result) {
+            if (result.done) return;
+            buffer += decoder.decode(result.value, { stream: true });
+            var parts = buffer.split("\n\n");
+            buffer = parts.pop() || "";
+            parts.forEach(function (chunk) {
+              var lines = chunk.split("\n");
+              for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (line.indexOf("data:") !== 0) continue;
+                var payload = line.slice(5).trim();
+                if (!payload) continue;
+                try {
+                  handleEvent(JSON.parse(payload));
+                } catch {
+                  /* ignore malformed chunk */
+                }
+              }
+            });
+            return pump();
+          });
+        }
+
+        return pump().then(function () {
+          if (streamError) throw new Error(streamError);
+          if (!finalAnswer && state.streaming) finalAnswer = state.streaming;
+          if (!finalAnswer) throw new Error("Empty assistant response.");
+          state.messages.push({ role: "assistant", content: finalAnswer });
+          saveHistory(state.messages);
         });
-      })
-      .then(function (data) {
-        state.messages.push({ role: "assistant", content: data.answer });
-        saveHistory(state.messages);
       })
       .catch(function (err) {
         state.error = err.message || "Something went wrong";
@@ -347,6 +410,7 @@
       })
       .finally(function () {
         state.loading = false;
+        state.streaming = null;
         render();
       });
   }

@@ -9,6 +9,13 @@ function startOfUtcMonth(date = new Date()): string {
     .slice(0, 10);
 }
 
+/** ISO timestamp for the start of the current UTC month (message period). */
+export function startOfUtcMonthIso(date = new Date()): string {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0),
+  ).toISOString();
+}
+
 /** Reset the monthly counter when the billing period rolls over. */
 export async function ensureMessagePeriod(
   supabase: SupabaseClient,

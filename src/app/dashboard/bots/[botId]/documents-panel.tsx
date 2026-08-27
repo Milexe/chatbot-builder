@@ -43,6 +43,7 @@ export function DocumentsPanel({
   botId,
   documents,
   documentsUsed,
+  documentsOnBot,
   documentsLimit,
   maxFileMb,
   canUpload,
@@ -50,6 +51,7 @@ export function DocumentsPanel({
   botId: string;
   documents: DocumentListItem[];
   documentsUsed: number;
+  documentsOnBot: number;
   documentsLimit: number;
   maxFileMb: number;
   canUpload: boolean;
@@ -85,9 +87,15 @@ export function DocumentsPanel({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {documentsUsed}/{documentsLimit} · .txt / .md · max {maxFileMb} MB
-      </p>
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground">
+          {documentsUsed}/{documentsLimit} account · {documentsOnBot} on this
+          bot
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Accepted formats: .txt, .md · max {maxFileMb} MB each
+        </p>
+      </div>
 
       {canUpload ? (
         <form

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { answerBotQuestion } from "@/lib/bot-answer";
+import { streamBotAnswer } from "@/lib/bot-answer";
+import { createChatSseResponse } from "@/lib/chat-sse";
 import {
   assertAndTouchEmbedSession,
   assertEmbedOrigin,
@@ -25,6 +26,8 @@ type RouteContext = {
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const runtime = "nodejs";
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
@@ -168,53 +171,61 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    try {
-      const { answer, citationChunkIds } = await answerBotQuestion(
-        admin,
-        bot,
-        message,
-      );
+    return createChatSseResponse(
+      async (send) => {
+        try {
+          const { answer, citationChunkIds } = await streamBotAnswer(
+            admin,
+            bot,
+            message,
+            {
+              onReady: (ids) => {
+                send({
+                  type: "meta",
+                  conversationId: conversationId!,
+                  citationChunkIds: ids,
+                });
+              },
+              onDelta: (text) => {
+                send({ type: "delta", text });
+              },
+            },
+          );
 
-      const { error: assistantError } = await admin.from("messages").insert({
-        conversation_id: conversationId,
-        role: "assistant",
-        content: answer,
-        citation_chunk_ids: citationChunkIds,
-      });
+          const { error: assistantError } = await admin.from("messages").insert({
+            conversation_id: conversationId,
+            role: "assistant",
+            content: answer,
+            citation_chunk_ids: citationChunkIds,
+          });
 
-      if (assistantError) {
-        return NextResponse.json(
-          { error: assistantError.message },
-          { status: 500, headers: cors },
-        );
-      }
+          if (assistantError) {
+            throw new Error(assistantError.message);
+          }
 
-      await incrementMessagesUsed(admin, profile);
-
-      return NextResponse.json(
-        {
-          answer,
-          session: {
-            id: sessionId,
-            messageCount: session.messageCount,
-            limit: session.limit,
-          },
-        },
-        { headers: cors },
-      );
-    } catch (error) {
-      const messageText =
-        error instanceof Error ? error.message : "Chat request failed.";
-      await admin.from("messages").insert({
-        conversation_id: conversationId,
-        role: "assistant",
-        content: `Sorry — I could not answer that (${messageText}).`,
-      });
-      return NextResponse.json(
-        { error: messageText },
-        { status: 502, headers: cors },
-      );
-    }
+          await incrementMessagesUsed(admin, profile);
+          send({
+            type: "done",
+            answer,
+            session: {
+              id: sessionId,
+              messageCount: session.messageCount,
+              limit: session.limit,
+            },
+          });
+        } catch (error) {
+          const messageText =
+            error instanceof Error ? error.message : "Chat request failed.";
+          await admin.from("messages").insert({
+            conversation_id: conversationId,
+            role: "assistant",
+            content: `Sorry — I could not answer that (${messageText}).`,
+          });
+          send({ type: "error", message: messageText });
+        }
+      },
+      { headers: cors },
+    );
   } catch (error) {
     if (error instanceof EmbedLimitError) {
       return NextResponse.json(
@@ -222,10 +233,10 @@ export async function POST(request: Request, context: RouteContext) {
         { status: error.status, headers: cors },
       );
     }
-    const message =
+    const errMessage =
       error instanceof Error ? error.message : "Embed chat failed.";
     return NextResponse.json(
-      { error: message },
+      { error: errMessage },
       { status: 500, headers: cors },
     );
   }

@@ -168,7 +168,6 @@ export default async function BotDetailPage({
             messagesUsed={usageProfile.messages_used_this_month}
             messagesLimit={plan.limits.messagesPerMonth}
             documentCount={documentRows.length}
-            documentsLimit={plan.limits.documents}
             isLive={isLive}
           />
         </CardContent>
@@ -184,6 +183,7 @@ export default async function BotDetailPage({
               botId={botId}
               documents={documentRows}
               documentsUsed={docsUsed}
+              documentsOnBot={documentRows.length}
               documentsLimit={plan.limits.documents}
               maxFileMb={plan.limits.maxFileMb}
               canUpload={docsUsed < plan.limits.documents}

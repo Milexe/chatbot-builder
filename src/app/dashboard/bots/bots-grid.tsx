@@ -6,36 +6,34 @@ import { PencilIcon } from "lucide-react";
 import { BotFormDialog } from "@/app/dashboard/bots/bot-form-dialog";
 import { DeleteBotButton } from "@/app/dashboard/bots/[botId]/delete-bot-button";
 import { PauseBotButton } from "@/app/dashboard/bots/[botId]/pause-bot-button";
-import { BotUsageMeta } from "@/components/bot-usage-meta";
+import { BotCardMeta } from "@/components/bot-usage-meta";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BotRow } from "@/types/database";
 
 export type BotCardStats = {
   documentCount: number;
+  messageCount: number;
 };
 
 export function BotsGrid({
   bots,
   statsByBotId,
-  messagesUsed,
-  messagesLimit,
-  documentsLimit,
   atBotLimit,
   planName,
 }: {
   bots: BotRow[];
   statsByBotId: Record<string, BotCardStats>;
-  messagesUsed: number;
-  messagesLimit: number;
-  documentsLimit: number;
   atBotLimit: boolean;
   planName: string;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {bots.map((bot) => {
-        const stats = statsByBotId[bot.id] ?? { documentCount: 0 };
+        const stats = statsByBotId[bot.id] ?? {
+          documentCount: 0,
+          messageCount: 0,
+        };
         const live = bot.is_public;
 
         return (
@@ -61,11 +59,9 @@ export function BotsGrid({
                   {bot.name}
                 </h2>
               </div>
-              <BotUsageMeta
-                messagesUsed={messagesUsed}
-                messagesLimit={messagesLimit}
+              <BotCardMeta
+                messagesUsed={stats.messageCount}
                 documentCount={stats.documentCount}
-                documentsLimit={documentsLimit}
                 isLive={live}
               />
             </div>

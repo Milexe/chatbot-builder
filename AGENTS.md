@@ -16,5 +16,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Plan gates: `src/lib/pricing.ts`; non-plan caps: `src/lib/limits.ts`
 - Shared RAG answer path: `src/lib/bot-answer.ts` (dashboard + embed)
 - Embed script: `public/widget.js` — local landing demo always uses request host
-- Do not invent PDF/streaming/UI citations until listed as shipped in product-decisions
+- Do not invent PDF/UI citations until listed as shipped in product-decisions
 - Prefer minimal diffs; match existing patterns; no drive-by refactors
