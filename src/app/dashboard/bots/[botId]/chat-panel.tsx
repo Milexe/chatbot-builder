@@ -63,31 +63,23 @@ export function ChatPanel({
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
-      setOptimisticUser(null);
     }
   }, [state, messages.length]);
-
-  useEffect(() => {
-    if (!optimisticUser) return;
-    const synced = messages.some(
-      (message) =>
-        message.role === "user" && message.content === optimisticUser,
-    );
-    if (synced) {
-      setOptimisticUser(null);
-    }
-  }, [messages, optimisticUser]);
-
-  useEffect(() => {
-    if (!pending && state.message && !state.ok) {
-      setOptimisticUser(null);
-    }
-  }, [pending, state]);
 
   const atLimit = messagesUsed >= messagesLimit;
   const optimisticEmpty =
     clearedConversationId !== null && clearedConversationId === conversationId;
   const visibleMessages = optimisticEmpty ? [] : messages;
+
+  const optimisticSynced =
+    optimisticUser !== null &&
+    messages.some(
+      (message) =>
+        message.role === "user" && message.content === optimisticUser,
+    );
+  const sendFailed = !pending && Boolean(state.message) && !state.ok;
+  const showOptimisticUser =
+    optimisticUser !== null && !optimisticSynced && !sendFailed;
 
   function submitAction(formData: FormData) {
     const content = String(formData.get("content") ?? "").trim();
@@ -174,7 +166,7 @@ export function ChatPanel({
               {message.content}
             </p>
           ))}
-          {optimisticUser ? (
+          {showOptimisticUser ? (
             <p
               className="ml-auto max-w-[88%] rounded-2xl rounded-tr-md px-3 py-2 text-sm leading-snug whitespace-pre-wrap text-primary-foreground"
               style={{ backgroundColor: primaryColor }}
