@@ -21,11 +21,12 @@ Pricing table amounts match Stripe test products (Pro $29 / Business $79 monthly
 
 ## Knowledge / indexing (shipped)
 
-- TXT / MD only (**PDF** → MVP finish backlog)
+- TXT / MD / PDF (text layer only; no OCR for scanned PDFs)
 - Upload via server action → Storage → background index (`after`)
 - Status: `pending` → `processing` → `ready` | `failed`
 - Embeddings: `OPENROUTER_EMBEDDING_MODEL` (default `openai/text-embedding-3-small`, 1536 dims)
 - Chunking: ~1200 chars, ~200 overlap ([`src/lib/chunk-text.ts`](../src/lib/chunk-text.ts))
+- PDF extract: [`unpdf`](https://github.com/unjs/unpdf) via [`src/lib/extract-document-text.ts`](../src/lib/extract-document-text.ts)
 
 ## In-app chat (shipped)
 
@@ -85,16 +86,15 @@ Origin matching uses the browser `Origin` header, with `Referer` as fallback. Sp
 
 | # | Item | Why it belongs |
 | --- | --- | --- |
-| 1 | **README truth-up** | Drop/claim only what ships (no PDF/citations until real) |
+| 1 | **README truth-up** | Keep claims aligned with code as features ship |
 | 2 | **Enforce `customColors`** | Free → default color only; Pro+ → picker + persist (optional; not claimed in pricing copy) |
-| 3 | **PDF upload + extract** | Marketing promise; TXT/MD already prove RAG |
 
 ### Acceptance sketches
 
 - **Billing (Stripe):** `/pricing` Upgrade opens Checkout (or prorates existing sub); Portal schedules cancel-at-period-end; webhook keeps `profiles.plan` in sync; deleted sub → Free.
-- **README:** Features list matches code; no “PDF” / “citations in UI” until shipped.
+- **README:** Features list matches code; no “citations in UI” until shipped.
 - **Custom colors:** Server rejects non-default `primary_color` on Free; UI disables or hides picker.
-- **PDF:** `.pdf` accepted, text extracted, same indexing pipeline as TXT/MD.
+- **PDF (shipped):** `.pdf` accepted, text layer extracted (`unpdf`), same indexing pipeline as TXT/MD; image-only/scanned PDFs fail with a clear error (no OCR).
 - **Streaming (shipped):** Tokens appear in widget and app chat; quotas still applied; assistant row saved after stream completes.
 
 ---

@@ -93,14 +93,14 @@ export function DocumentsPanel({
           bot
         </p>
         <p className="text-xs text-muted-foreground">
-          Accepted formats: .txt, .md · max {maxFileMb} MB each
+          Accepted formats: .txt, .md, .pdf · max {maxFileMb} MB each
         </p>
       </div>
 
       {canUpload ? (
         <form
           action={formAction}
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex min-w-0 flex-col gap-2"
           onSubmit={(event) => {
             setClientError("");
             const input = event.currentTarget.elements.namedItem(
@@ -115,11 +115,11 @@ export function DocumentsPanel({
             }
           }}
         >
-          <div className="grid flex-1 gap-2">
-            <Label htmlFor="file">Upload</Label>
+          <Label htmlFor="file">Upload</Label>
+          <div className="flex min-w-0 items-center gap-2">
             <label
               htmlFor="file"
-              className="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border border-input bg-transparent px-2.5 text-sm font-sans transition-colors has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
+              className="flex h-10 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-input bg-transparent px-2.5 text-sm font-sans transition-colors has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
             >
               <span className="shrink-0 font-medium text-foreground">
                 Choose files
@@ -131,7 +131,7 @@ export function DocumentsPanel({
                 id="file"
                 name="file"
                 type="file"
-                accept=".txt,.md,.markdown,text/plain,text/markdown"
+                accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf"
                 multiple
                 required
                 disabled={pending || remaining <= 0}
@@ -142,10 +142,14 @@ export function DocumentsPanel({
                 }}
               />
             </label>
+            <Button
+              type="submit"
+              disabled={pending || remaining <= 0}
+              className="h-10 shrink-0"
+            >
+              {pending ? "Uploading…" : "Upload"}
+            </Button>
           </div>
-          <Button type="submit" disabled={pending || remaining <= 0}>
-            {pending ? "Uploading…" : "Upload"}
-          </Button>
         </form>
       ) : (
         <p className="text-sm text-muted-foreground">
@@ -178,18 +182,18 @@ export function DocumentsPanel({
           documents.map((doc) => (
             <li
               key={doc.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              className="flex items-center justify-between gap-3 px-4 py-3"
             >
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 flex-1 space-y-1">
                 <p className="truncate font-medium">{doc.file_name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground">
                   {formatBytes(doc.byte_size)}
                   {doc.status === "failed" && doc.error_message
                     ? ` · ${doc.error_message}`
                     : null}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <Badge variant="secondary">{doc.status}</Badge>
                 {canRetry(doc.status) ? (
                   <form action={reindexDocument.bind(null, botId, doc.id)}>

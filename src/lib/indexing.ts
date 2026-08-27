@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { chunkText, estimateTokenCount } from "@/lib/chunk-text";
 import { DOCUMENTS_BUCKET } from "@/lib/documents";
+import { extractDocumentText } from "@/lib/extract-document-text";
 import { createEmbeddings } from "@/lib/openrouter";
 
 const EMBEDDING_BATCH_SIZE = 32;
@@ -35,7 +36,7 @@ async function setDocumentStatus(
 }
 
 /**
- * Download a stored TXT/MD document, chunk + embed, write document_chunks.
+ * Download a stored TXT/MD/PDF document, chunk + embed, write document_chunks.
  * Safe to retry: replaces existing chunks for the document.
  */
 export async function indexDocument(
@@ -45,7 +46,7 @@ export async function indexDocument(
 ): Promise<IndexDocumentResult> {
   const { data: doc, error: docError } = await supabase
     .from("documents")
-    .select("id, bot_id, owner_id, storage_path, file_name, status")
+    .select("id, bot_id, owner_id, storage_path, file_name, mime_type, status")
     .eq("id", documentId)
     .eq("owner_id", ownerId)
     .maybeSingle();
@@ -84,10 +85,12 @@ export async function indexDocument(
       );
     }
 
-    const text = (await file.text()).trim();
-    if (!text) {
-      throw new Error("Document is empty.");
-    }
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const text = await extractDocumentText({
+      bytes,
+      fileName: doc.file_name,
+      mimeType: doc.mime_type,
+    });
 
     const chunks = chunkText(text);
     if (chunks.length === 0) {

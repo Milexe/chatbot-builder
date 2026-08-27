@@ -108,7 +108,7 @@ export default async function HomePage() {
               {
                 step: "1",
                 title: "Upload docs",
-                body: "TXT or Markdown — chunked and indexed for retrieval.",
+                body: "TXT, Markdown, or PDF — chunked and indexed for retrieval.",
               },
               {
                 step: "2",

@@ -48,7 +48,7 @@ async function uploadOneFile({
   if (!isAllowedDocumentFile(file.name, file.type)) {
     return {
       ok: false,
-      message: `${file.name}: only .txt / .md supported.`,
+      message: `${file.name}: only .txt / .md / .pdf supported.`,
     };
   }
 
@@ -143,7 +143,7 @@ export async function uploadDocument(
   });
 
   if (files.length === 0) {
-    return { ok: false, message: "Choose at least one TXT or Markdown file." };
+    return { ok: false, message: "Choose at least one TXT, Markdown, or PDF file." };
   }
   if (files.length > remaining) {
     return {

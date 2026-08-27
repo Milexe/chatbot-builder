@@ -1,11 +1,17 @@
 export const DOCUMENTS_BUCKET = "documents";
 
-export const ALLOWED_DOCUMENT_EXTENSIONS = [".txt", ".md", ".markdown"] as const;
+export const ALLOWED_DOCUMENT_EXTENSIONS = [
+  ".txt",
+  ".md",
+  ".markdown",
+  ".pdf",
+] as const;
 
 export const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   "text/plain",
   "text/markdown",
   "text/x-markdown",
+  "application/pdf",
 ]);
 
 export function getDocumentExtension(fileName: string): string {

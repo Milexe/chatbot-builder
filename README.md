@@ -4,7 +4,7 @@ Turn company documents into a support chatbot: chat in the app, or embed a widge
 
 ## Features
 
-- Upload knowledge (TXT / Markdown) and answer from your own docs
+- Upload knowledge (TXT / Markdown / PDF) and answer from your own docs
 - In-app chat and embeddable website widget (shared RAG path)
 - Plan limits (bots, messages, documents, branding)
 - Stripe billing on `/pricing` (Checkout + Customer Portal, test mode)
